@@ -85,7 +85,6 @@ class TaxGui(QWidget):
                             "QPushButton:disabled { color: #373F47;}")
         
         tools_container.setStyleSheet("QWidget { background-color: #1B1F23;}"
-                            #"QPushButton { background-color: #1B1F23; border: none; padding: 3px; height: 32px; width: 32px;}"
                             "QPushButton { background-image: url('exit24.png'); border: none; width: 24px; height: 24px;}"
                             "QPushButton:hover { background-color: #47525C; }"
                             "QPushButton:pressed { background-color: #505C68;}")
