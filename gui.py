@@ -14,6 +14,7 @@ class TaxGui(QWidget):
         super().__init__()
         self.initUI()
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint)
+        self.setWindowTitle('Tax Estimator')
         self.stacked_widget.currentChanged.connect(self.set_button_state)
         self.next_button.clicked.connect(self.next_page)
         self.prev_button.clicked.connect(self.prev_page)
@@ -140,3 +141,23 @@ if __name__ == '__main__':
     tg.resize(800,600)
     tg.show()
     app.exec()
+"""
+Pages Needed:
+    Info
+        Filing Status (Single, Married), Dependents
+    Income
+        W-2 Wages, Federal Tax Witheld, State Tax Witheld
+        1099-INT Box 1, 1099-DIV Box 1a (Ordinary), 1099-DIV Box 1b (Qualified),
+        Short-term Gains, Long-term Gains, Qualified Distributions,
+        1099-NEC Wages, Unemployment
+    Deductions
+        Deduction Type (Standard, Itemized),
+        Standard Deduction (Federal, State), State Exemption
+    Credits
+        Eligible American Opportunity Credit Costs,
+        Recovery Rebate Credit
+    Results
+        Federal Return
+        State Return
+        Total Return
+"""
