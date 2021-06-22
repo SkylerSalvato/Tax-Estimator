@@ -1,7 +1,7 @@
 import sys
 
 # Qt widgets
-from PyQt6.QtWidgets import (QLabel, QMainWindow, QWidget, QPushButton,
+from PyQt6.QtWidgets import (QLabel, QLineEdit, QMainWindow, QScrollArea, QWidget, QPushButton,
     QHBoxLayout, QVBoxLayout, QApplication, QStackedWidget)
 from PyQt6.QtCore import QPoint, QPropertyAnimation, QRect, Qt
 from PyQt6.QtGui import QCursor, QIcon
@@ -37,7 +37,7 @@ class TaxGui(QWidget):
 
         # Containers for layout styling
         tab_container = QWidget(self)
-        tools_container = QWidget(self)
+        self.tools_container = QWidget(self)
 
         # Page navigation tabs initilization and configuring
         tabs = QVBoxLayout(tab_container)
@@ -58,7 +58,7 @@ class TaxGui(QWidget):
         main.setSpacing(10)
 
         # Toolbar initialization and configuring
-        toolbar = QHBoxLayout(tools_container)
+        toolbar = QHBoxLayout(self.tools_container)
         toolbar.setAlignment(Qt.AlignmentFlag.AlignRight)
         toolbar.setContentsMargins(0,0,0,0)
 
@@ -71,7 +71,7 @@ class TaxGui(QWidget):
         screen.setContentsMargins(0,0,0,0)
 
         # Add to entire page
-        screen.addWidget(tools_container)
+        screen.addWidget(self.tools_container)
         screen.addLayout(main)
         
         # Define app layout
@@ -84,7 +84,7 @@ class TaxGui(QWidget):
                             "QPushButton:pressed { background-color: #9792E3;}"
                             "QPushButton:disabled { color: #373F47;}")
         
-        tools_container.setStyleSheet("QWidget { background-color: #1B1F23;}"
+        self.tools_container.setStyleSheet("QWidget { background-color: #1B1F23;}"
                             "QPushButton { background-image: url('exit24.png'); border: none; width: 24px; height: 24px;}"
                             "QPushButton:hover { background-color: #47525C; }"
                             "QPushButton:pressed { background-color: #505C68;}")
@@ -111,13 +111,25 @@ class TaxGui(QWidget):
         if new_index >= 0:
             self.stacked_widget.setCurrentIndex(new_index)
 
-    def mousePressEvent(self, event):
-        self.oldPos = event.globalPosition()
-
-    def mouseMoveEvent(self, event):
+    def moveWindow(self, event):
         delta = QPoint(event.globalPosition().toPoint() - self.oldPos.toPoint())
         self.move(self.x() + delta.x(), self.y() + delta.y())
         self.oldPos = event.globalPosition()
+
+    def mousePressEvent(self, event):
+        self.tools_container.mouseMoveEvent = self.moveWindow
+        self.oldPos = event.globalPosition()
+
+
+class LongPage(QScrollArea):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setupUI()
+
+    def setupUI(self):
+        #box1 = QLineEdit(self)
+        pass
+
 
 if __name__ == '__main__':
 
