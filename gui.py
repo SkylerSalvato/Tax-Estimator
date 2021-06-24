@@ -1,8 +1,11 @@
 import sys
 
+from modules import Calculator
+
 # Qt widgets
-from PyQt6.QtWidgets import (QLabel, QLineEdit, QFrame, QScrollArea, QSizePolicy, QWidget, QPushButton,
-    QHBoxLayout, QVBoxLayout, QApplication, QStackedWidget)
+from PyQt6.QtWidgets import (QFrame, QScrollArea, QGroupBox, QHBoxLayout, QVBoxLayout, 
+    QApplication, QStackedWidget, QSizePolicy, 
+    QWidget, QLabel, QLineEdit, QPushButton, QRadioButton, QButtonGroup)
 from PyQt6.QtCore import QPoint, QPropertyAnimation, QRect, Qt
 from PyQt6.QtGui import QCursor, QIcon
 
@@ -14,18 +17,29 @@ class TaxGui(QWidget):
         super().__init__()
         self.initUI()
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint)
-        self.setWindowTitle('Tax Estimator')
+        self.setWindowTitle('Tax Estimator') 
+
+        # Signals
         self.stacked_widget.currentChanged.connect(self.set_button_state)
-        self.info.clicked.connect(lambda: self.goto_page(page=0))
-        self.income.clicked.connect(lambda: self.goto_page(page=1))
-        self.deductions.clicked.connect(lambda: self.goto_page(page=2))
-        self.credits.clicked.connect(lambda: self.goto_page(page=3))
-        self.results.clicked.connect(lambda: self.goto_page(page=4))
+        self.info.clicked.connect(self.saveInfo)
+        self.income.clicked.connect(self.saveIncome)
+        self.deductions.clicked.connect(self.saveDeductions)
+        self.credits.clicked.connect(self.saveCredits)
+        self.results.clicked.connect(self.calcResults)
         self.closer.clicked.connect(QApplication.instance().quit)
+
+        # Add pages
+        self.page_info = Info()
+        self.page_income = Income()
+        self.page_deductions = Deductions()
+        self.insert_page(self.page_info)
+        self.insert_page(self.page_income)
+        self.insert_page(self.page_deductions)
+        for i in range(2):
+            self.insert_page(QLabel(f'test {i+1}'))
 
     # Setup the application parts
     def initUI(self):
-        
         # Create the widgets
         self.info = QPushButton('Info')
         self.income = QPushButton('Income')
@@ -120,7 +134,43 @@ class TaxGui(QWidget):
 
     # Method that switches pages
     def goto_page(self, page=0):
+        switcher = {
+            0 : self.info,
+            1 : self.income,
+            2 : self.deductions,
+            3 : self.credits
+        }
+        for k in switcher:
+            if (switcher[k].isEnabled() == False):
+                if (k == 0):
+                    self.page_info.save()
+                elif (k == 1):
+                    print()
+                elif (k == 2):
+                    print()
+                elif (k == 3):
+                    print()
+        """if (page == 4):
+            # Initialize Calculator
+            calc = Calculator.Calculator()
+            # Run functions
+            calc.fillSE()
+            calc.fillSch1()
+            calc.fillSch2()
+            calc.fillSchD()
+            calc.calcAdjIncome()
+            calc.fill8995()
+            calc.adjustTax()
+            calc.calcStateTax()
+            calc.fill8863()
+            calc.fill1040()
+            calc.fillState()
+            res = calc.getFields()
+            grand_total = int(res["self.refund_owe_total"] + res["self.st_refund_owe_total"])
+            # Set text values and colors. 
+            """
         self.stacked_widget.setCurrentIndex(page)
+        
 
     # Used to move app since no frame
     def moveWindow(self, event):
@@ -132,6 +182,22 @@ class TaxGui(QWidget):
     def mousePressEvent(self, event):
         self.tools_container.mouseMoveEvent = self.moveWindow
         self.oldPos = event.globalPosition()
+
+    def saveInfo(self):
+        self.goto_page(page=0)
+
+    def saveIncome(self):
+        self.goto_page(page=1)
+
+    def saveDeductions(self):
+        self.goto_page(page=2)
+
+    def saveCredits(self):
+        self.goto_page(page=3)
+
+    def calcResults(self):
+        self.goto_page(page=4)
+
 
 # Custom label and text field
 class LabeledText(QHBoxLayout):
@@ -156,7 +222,51 @@ class LabeledText(QHBoxLayout):
 
 # Info Page
 class Info(QWidget):
-    pass
+    def __init__(self):
+        super().__init__()
+        # Run setup
+        self.setupUI()
+    
+    def setupUI(self):
+        # Variables
+        layout = QVBoxLayout()
+        radio_box = QHBoxLayout()
+        filing_status = QGroupBox('Filing status')
+        self.group = QButtonGroup(radio_box)
+        sng = QRadioButton('Single')
+        mrd = QRadioButton('Married')
+
+        layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        radio_box.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        radio_box.setSpacing(10)
+        filing_status.setFixedSize(200, 100)
+        sng.setChecked(True)
+
+        self.group.addButton(sng)
+        self.group.addButton(mrd)
+        radio_box.addWidget(sng)
+        radio_box.addWidget(mrd)
+        filing_status.setLayout(radio_box)
+        layout.addSpacing(50)
+        layout.addWidget(filing_status)
+        layout.addStretch(1)
+        self.setLayout(layout)
+        
+        # Style Sheet
+        self.setStyleSheet("QGroupBox { border: 2px solid gray; border-radius: 3px; margin-top: 10px; }"
+                            "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; padding: 0 15px;  }"
+                            )
+
+    def save(self):
+        if (not self.group.checkedButton() is None):
+            married = False if self.group.checkedButton().text() == 'Single' else True
+            upd = {
+                "self.married" : married
+            }
+            # Update fields
+            Calculator.Calculator.updateFields(upd)
+
+
 
 # Income Page
 class Income(QScrollArea):
@@ -205,7 +315,55 @@ class Income(QScrollArea):
         self.setWidget(container)        
 
 class Deductions(QWidget):
-    pass
+    def __init__(self):
+        super().__init__()
+        # Run setup
+        self.setupUI()
+    
+    def setupUI(self):
+        # Variables
+        layout = QVBoxLayout()
+        radio_box = QHBoxLayout()
+        rbox = QGroupBox('Deduction Type')
+        self.group = QButtonGroup(radio_box)
+        choice1 = QRadioButton('Standard Deduction')
+        choice2 = QRadioButton('Itemized Deduction')
+        self.std_deduction = LabeledText('12550', 'Current Standard Deduction')
+        
+
+        layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        radio_box.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        radio_box.setSpacing(10)
+        rbox.setFixedSize(300, 100)
+        choice1.setChecked(True)
+
+        self.group.addButton(choice1)
+        self.group.addButton(choice2)
+        radio_box.addWidget(choice1)
+        radio_box.addWidget(choice2)
+        rbox.setLayout(radio_box)
+        layout.addSpacing(50)
+        layout.addWidget(rbox)
+        layout.addLayout(self.std_deduction)
+        layout.addSpacing(25)
+        layout.addStretch(1)
+        self.setLayout(layout)
+        
+        # Style Sheet
+        self.setStyleSheet("QGroupBox { border: 2px solid gray; border-radius: 3px; margin-top: 10px; }"
+                            "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; padding: 0 15px;  }"
+                            )
+
+    def save(self):
+        if (not self.group.checkedButton() is None):
+            married = False if self.group.checkedButton().text() == 'Single' else True
+            upd = {
+                "self.STD_DEDUCTION" : float(self.std_deduction.GetValue()),
+                "self.GA_DEDUCTION" : float(self.ga_deduction.Getvalue()),
+                "self.GA_EXEMPT" : float(self.ga_exemption.GetValue())
+            }
+            # Update fields
+            Calculator.Calculator.updateFields(upd)
 
 class Credits(QWidget):
     pass
@@ -217,9 +375,6 @@ class Results(QWidget):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     tg = TaxGui()
-    for i in range(4):
-        tg.insert_page(QLabel(f'test {i+1}'))
-    tg.insert_page(Income())
     tg.resize(800,600)
     tg.show()
     app.exec()
