@@ -32,11 +32,13 @@ class TaxGui(QWidget):
         self.page_info = Info()
         self.page_income = Income()
         self.page_deductions = Deductions()
+        self.page_credits = Credits()
+        self.page_results = Results()
         self.insert_page(self.page_info)
         self.insert_page(self.page_income)
         self.insert_page(self.page_deductions)
-        for i in range(2):
-            self.insert_page(QLabel(f'test {i+1}'))
+        self.insert_page(self.page_credits)
+        self.insert_page(self.page_results)
 
     # Setup the application parts
     def initUI(self):
@@ -145,33 +147,15 @@ class TaxGui(QWidget):
                 if (k == 0):
                     self.page_info.save()
                 elif (k == 1):
-                    print()
+                    self.page_income.save()
                 elif (k == 2):
-                    print()
+                    self.page_deductions.save()
                 elif (k == 3):
-                    print()
-        """if (page == 4):
-            # Initialize Calculator
-            calc = Calculator.Calculator()
-            # Run functions
-            calc.fillSE()
-            calc.fillSch1()
-            calc.fillSch2()
-            calc.fillSchD()
-            calc.calcAdjIncome()
-            calc.fill8995()
-            calc.adjustTax()
-            calc.calcStateTax()
-            calc.fill8863()
-            calc.fill1040()
-            calc.fillState()
-            res = calc.getFields()
-            grand_total = int(res["self.refund_owe_total"] + res["self.st_refund_owe_total"])
-            # Set text values and colors. 
-            """
+                    self.page_credits.save()
+        if (page == 4):
+            self.page_results.run()
         self.stacked_widget.setCurrentIndex(page)
         
-
     # Used to move app since no frame
     def moveWindow(self, event):
         delta = QPoint(event.globalPosition().toPoint() - self.oldPos.toPoint())
@@ -213,7 +197,7 @@ class LabeledText(QHBoxLayout):
         self.itemAt(2).widget().setFixedWidth(130)
         self.addStretch()
 
-    def GetValue(self):
+    def text(self):
         value = ''
         for i in range(0,4):
             if isinstance(self.itemAt(i).widget(), QLineEdit):
@@ -285,13 +269,52 @@ class Income(QScrollArea):
         # Variables
         container = QWidget()
         layout = QVBoxLayout(container)
-        box1 = LabeledText('test', 'Testing')
-        save = QPushButton()
+        hbox = QHBoxLayout()
+        self.wages = QLineEdit('0')
+        self.fed_tax_witheld = QLineEdit('0')
+        self.st_tax_witheld = QLineEdit('0')
+        self.int_field = LabeledText('0', '1099-INT Box 1')
+        self.div_field = LabeledText('0', '1099-DIV Box 1a (Ordinary)')
+        self.div2_field = LabeledText('0', '1099-DIV Box 1b (Qualified)')
+        self.short_field = LabeledText('0', 'Short-term Gains')
+        self.long_field = LabeledText('0', 'Long-term Gains')
+        self.distributions = LabeledText('0', 'Qualified Distributions')
+        self.nec_field = LabeledText('0', '1099-NEC Wages')
+        self.unemploy_field = LabeledText('0', 'Unemployment Checks')
+        
+        hbox.addWidget(QLabel('W-2 Wages:'))
+        hbox.addWidget(self.wages)
+        hbox.addSpacing(25)
+        hbox.addWidget(QLabel('Federal Tax Witheld:'))
+        hbox.addWidget(self.fed_tax_witheld)
+        hbox.addSpacing(25)
+        hbox.addWidget(QLabel('State Tax Witheld:'))
+        hbox.addWidget(self.st_tax_witheld)            
 
-        # Configure button
-        save.setFixedWidth(130)
-        save.setFixedHeight(45)
-        save.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        # Configure Page
+        #layout.setSpacing(15)
+        layout.addSpacing(50)
+        layout.addLayout(hbox)
+        layout.addSpacing(25)
+        layout.addLayout(self.int_field)
+        layout.addSpacing(25)
+        layout.addLayout(self.div_field)
+        layout.addSpacing(25)
+        layout.addLayout(self.div2_field) 
+        layout.addSpacing(25)
+        layout.addLayout(self.short_field)
+        layout.addSpacing(25)
+        layout.addLayout(self.long_field)
+        layout.addSpacing(25)
+        layout.addLayout(self.distributions) 
+        layout.addSpacing(25)
+        layout.addLayout(self.nec_field)
+        layout.addSpacing(25)
+        layout.addLayout(self.unemploy_field)
+        layout.addStretch(1)
+
+        # Contain layout in widget
+        self.setWidget(container)     
 
         # Style Sheet
         self.setStyleSheet("QPushButton { border: none; background-color: #23292E; }"
@@ -302,17 +325,23 @@ class Income(QScrollArea):
                             "QScrollBar::handle:vertical:hover { background-color: #9792E3; }"
                             "QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical { background:none; }"
                             "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background:none; }"
-        )
+        )   
 
-        # Configure Page
-        layout.setSpacing(15)
-        layout.addLayout(box1)
-        layout.addLayout(LabeledText('test', 'Testing'))
-        layout.addWidget(save)
-        layout.addStretch(1)
-
-        # Contain layout in widget
-        self.setWidget(container)        
+    def save(self):
+        upd = {
+            "self.wages" : float(self.wages.text()),
+            "self.fed_tax_witheld" : float(self.fed_tax_witheld.text()),
+            "self.st_tax_witheld" : float(self.st_tax_witheld.text()),
+            "self.int_income" : float(self.int_field.text()),
+            "self.div_ordinary" : float(self.div_field.text()),
+            "self.div_qualified" : float(self.div2_field.text()),
+            "self.short_gains" : float(self.short_field.text()),
+            "self.long_gains" : float(self.long_field.text()),
+            "self.cap_distributions" : float(self.distributions.text()),
+            "self.nec_total" : float(self.nec_field.text()),
+            "self.unemployment_income" : float(self.unemploy_field.text())
+        }
+        Calculator.Calculator.updateFields(upd)
 
 class Deductions(QWidget):
     def __init__(self):
@@ -322,6 +351,7 @@ class Deductions(QWidget):
     
     def setupUI(self):
         # Variables
+        container = QHBoxLayout()
         layout = QVBoxLayout()
         radio_box = QHBoxLayout()
         rbox = QGroupBox('Deduction Type')
@@ -329,23 +359,36 @@ class Deductions(QWidget):
         choice1 = QRadioButton('Standard Deduction')
         choice2 = QRadioButton('Itemized Deduction')
         self.std_deduction = LabeledText('12550', 'Current Standard Deduction')
+        self.ga_deduction = LabeledText('4600', 'GA Standard Deduction')
+        self.ga_exemption = LabeledText('2700', 'GA Exemption')
+        title1 = QLabel('Standard Deduction:')
+        title2 = QLabel('Itemized Deduction')
         
-
-        layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        radio_box.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         radio_box.setSpacing(10)
         rbox.setFixedSize(300, 100)
         choice1.setChecked(True)
+        title1.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        title2.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
+        # Buttons
         self.group.addButton(choice1)
         self.group.addButton(choice2)
         radio_box.addWidget(choice1)
         radio_box.addWidget(choice2)
         rbox.setLayout(radio_box)
+        container.addWidget(rbox)
+
         layout.addSpacing(50)
-        layout.addWidget(rbox)
+        layout.addLayout(container)
+        layout.addSpacing(25)
+        layout.addWidget(title1)
         layout.addLayout(self.std_deduction)
         layout.addSpacing(25)
+        layout.addLayout(self.ga_deduction)
+        layout.addSpacing(25)
+        layout.addLayout(self.ga_exemption)
+        layout.addSpacing(25)
+        layout.addWidget(title2)
         layout.addStretch(1)
         self.setLayout(layout)
         
@@ -356,20 +399,106 @@ class Deductions(QWidget):
 
     def save(self):
         if (not self.group.checkedButton() is None):
-            married = False if self.group.checkedButton().text() == 'Single' else True
+            # Add line that sets a variable to check if using standard deduction or not
             upd = {
-                "self.STD_DEDUCTION" : float(self.std_deduction.GetValue()),
-                "self.GA_DEDUCTION" : float(self.ga_deduction.Getvalue()),
-                "self.GA_EXEMPT" : float(self.ga_exemption.GetValue())
+                "self.STD_DEDUCTION" : float(self.std_deduction.text()),
+                "self.GA_DEDUCTION" : float(self.ga_deduction.text()),
+                "self.GA_EXEMPT" : float(self.ga_exemption.text())
             }
             # Update fields
             Calculator.Calculator.updateFields(upd)
 
 class Credits(QWidget):
-    pass
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        my_sizer = QVBoxLayout()
+        self.education_credit = LabeledText('0', 'Eligible American Opportunity Credit Expenses')
+        self.recovery_credit = LabeledText('0', 'Recovery Rebate Credit')
+        
+        my_sizer.addSpacing(50)
+        my_sizer.addLayout(self.education_credit)
+        my_sizer.addSpacing(50)
+        my_sizer.addLayout(self.recovery_credit)
+        my_sizer.addStretch(1)
+
+        self.setLayout(my_sizer)
+
+    def save(self):
+        upd = {
+            "self.edu_expenses" : float(self.education_credit.text()),
+            "self.stimulus_credit" : float(self.recovery_credit.text())
+        }
+        Calculator.Calculator.updateFields(upd)
 
 class Results(QWidget):
-    pass
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        my_sizer = QVBoxLayout()
+        self.fed = QHBoxLayout()
+        self.fed_total = QLabel(self)
+        self.state = QHBoxLayout()
+        self.st_total = QLabel(self)
+        self.tot = QHBoxLayout()
+        self.total = QLabel(self)
+
+        self.fed.addWidget(QLabel('<h1>Federal Return:</h1>\t'))
+        self.fed.addWidget(self.fed_total)
+        self.state.addWidget(QLabel('<h1>State Return:</h1>\t'))
+        self.state.addWidget(self.st_total)
+        self.tot.addWidget(QLabel('<h1>Total Return:</h1>\t'))
+        self.tot.addWidget(self.total)
+
+        my_sizer.addSpacing(50)
+        my_sizer.addLayout(self.fed)
+        my_sizer.addSpacing(50)
+        my_sizer.addLayout(self.state)
+        my_sizer.addSpacing(50)
+        my_sizer.addLayout(self.tot)
+        my_sizer.addStretch(1)
+
+        my_sizer.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+
+        self.setLayout(my_sizer)
+
+    def run(self):
+        # Initialize Calculator
+        calc = Calculator.Calculator()
+        # Run functions
+        calc.fillSE()
+        calc.fillSch1()
+        calc.fillSch2()
+        calc.fillSchD()
+        calc.calcAdjIncome()
+        calc.fill8995()
+        calc.adjustTax()
+        calc.calcStateTax()
+        calc.fill8863()
+        calc.fill1040()
+        calc.fillState()
+        res = calc.getFields()
+        grand_total = int(res["self.refund_owe_total"] + res["self.st_refund_owe_total"])
+        # Set text values and colors. 
+        self.fed_total.setText(f'<h1>${str(int(res["self.refund_owe_total"]))}</h1>')
+        self.st_total.setText(f'<h1>${str(int(res["self.st_refund_owe_total"]))}</h1>')
+        self.total.setText(f'<h1>${str(grand_total)}</h1>')
+        if res["self.refund_owe_total"] < 0:
+            self.fed_total.setStyleSheet("color: #DB5461")
+        else:
+            self.fed_total.setStyleSheet("color: #ACE894")
+        if res["self.st_refund_owe_total"] < 0:
+            self.st_total.setStyleSheet("color: #DB5461")
+        else:
+            self.st_total.setStyleSheet("color: #ACE894")
+        if grand_total < 0:
+            self.total.setStyleSheet("color: #DB5461")
+        else:
+            self.total.setStyleSheet("color: #ACE894")
 
 # Main method
 if __name__ == '__main__':
@@ -378,24 +507,3 @@ if __name__ == '__main__':
     tg.resize(800,600)
     tg.show()
     app.exec()
-
-"""
-Pages Needed:
-    Info
-        Filing Status (Single, Married), Dependents
-    Income
-        W-2 Wages, Federal Tax Witheld, State Tax Witheld
-        1099-INT Box 1, 1099-DIV Box 1a (Ordinary), 1099-DIV Box 1b (Qualified),
-        Short-term Gains, Long-term Gains, Qualified Distributions,
-        1099-NEC Wages, Unemployment
-    Deductions
-        Deduction Type (Standard, Itemized),
-        Standard Deduction (Federal, State), State Exemption
-    Credits
-        Eligible American Opportunity Credit Costs,
-        Recovery Rebate Credit
-    Results
-        Federal Return
-        State Return
-        Total Return
-"""

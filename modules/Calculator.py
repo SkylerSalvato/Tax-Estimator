@@ -68,7 +68,6 @@ class Calculator:
         }
 
     def __init__(self):
-        print('Calculating Results')
         self.fed_brackets = [
             [0.00, 9875.00, 0.10, 0], # min (excl), max (incl), tax rate, sum of prev.
             [9875.00, 40125.00, 0.12, 987.50],
@@ -142,10 +141,12 @@ class Calculator:
             for i in range(len(self.fed_brackets)): 
                 if (self.values["self.taxable_income"] > self.fed_brackets[i][0] and self.values["self.taxable_income"] <= self.fed_brackets[i][1]):
                     return self.fed_brackets[i][3] + self.fed_brackets[i][2] * (self.values["self.taxable_income"] - self.fed_brackets[i][0])
+                return 0
         else:
             for i in range(len(self.fed_brackets)):
                 if (self.values["self.taxable_income"] > (2.00 * self.fed_brackets[i][0]) and self.values["self.taxable_income"] <= (2.00 * self.fed_brackets[i][1])):
                     return (2.00 * self.fed_brackets[i][3]) + self.fed_brackets[i][2] * (self.values["self.taxable_income"] - (2.00 * self.fed_brackets[i][0]))
+                return 0
     
     def calcStateTax(self):
         if (not self.values["self.married"]):
@@ -179,6 +180,8 @@ class Calculator:
         precalculated = (self.values["self.adjusted_gross_income"] - self.values["self.STD_DEDUCTION"]) if not self.values["self.married"] else (self.values["self.adjusted_gross_income"] - (2.00 * self.values["self.STD_DEDUCTION"]))
         fourteen = (precalculated - self.values["self.cap_gains"]) * 0.2
         self.values["self.business_deduction"] = five if five < fourteen else fourteen
+        if (self.values["self.business_deduction"] < 0):
+            self.values["self.business_deduction"] = 0 
 
     def fill1040(self):
         if ((self.values["self.tax"] - self.values["self.nonrefundable_aoc"]) < 0):
