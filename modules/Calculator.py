@@ -64,7 +64,12 @@ class Calculator:
         "self.edu_expenses" : 0,
         "self.aoc_credit" : 0,
         "self.refundable_aoc" : 0,
-        "self.nonrefundable_aoc" : 0
+        "self.nonrefundable_aoc" : 0,
+
+        # Estimated taxes
+        "self.est_payments" : 0,
+        "self.req_payments" : False,
+        "self.est_tax" : 0
         }
 
     def __init__(self):
@@ -92,6 +97,15 @@ class Calculator:
             [5000.00, 7000.00, 0.04, 110.00],
             [7000.00, 10000.00, 0.05, 190.00],
             [10000.00, sys.float_info.max, 0.0575, 340.00]
+        ]
+        self.est_bracket = [
+            [0.00, 9950.00, 0.10, 0], # min (excl), max (incl), tax rate, sum of prev.
+            [9950.00, 40525.00, 0.12, 995.00],
+            [40525.00, 86375.00, 0.22, 4664.00],
+            [86375.00, 164925.00, 0.24, 14751.00],
+            [164925.00, 209425.00, 0.32, 33603.00],
+            [209425.00, 523600.00, 0.35, 47843.00],
+            [523600.00, sys.float_info.max, 0.37, 157804.25]
         ]
 
     def fillSE(self):
@@ -147,6 +161,18 @@ class Calculator:
                 if (self.values["self.taxable_income"] > (2.00 * self.fed_brackets[i][0]) and self.values["self.taxable_income"] <= (2.00 * self.fed_brackets[i][1])):
                     return (2.00 * self.fed_brackets[i][3]) + self.fed_brackets[i][2] * (self.values["self.taxable_income"] - (2.00 * self.fed_brackets[i][0]))
                 return 0
+
+    def calcEstTax(self):
+        if (not self.values["self.married"]):
+            for i in range(len(self.est_bracket)): 
+                if (self.values["self.taxable_income"] > self.est_bracket[i][0] and self.values["self.taxable_income"] <= self.est_bracket[i][1]):
+                    return self.est_bracket[i][3] + self.est_bracket[i][2] * (self.values["self.taxable_income"] - self.est_bracket[i][0])
+                return 0
+        else:
+            for i in range(len(self.est_bracket)):
+                if (self.values["self.taxable_income"] > (2.00 * self.est_bracket[i][0]) and self.values["self.taxable_income"] <= (2.00 * self.est_bracket[i][1])):
+                    return (2.00 * self.est_bracket[i][3]) + self.est_bracket[i][2] * (self.values["self.taxable_income"] - (2.00 * self.est_bracket[i][0]))
+                return 0
     
     def calcStateTax(self):
         if (not self.values["self.married"]):
@@ -196,6 +222,22 @@ class Calculator:
 
     def fillState(self):
         self.values["self.st_refund_owe_total"] = self.values["self.st_tax_witheld"] - self.values["self.st_tax"]
+
+    def calcEstPayments(self):
+        six = self.calcEstTax()
+        eight = six - self.values["self.nonrefundable_aoc"]
+        eight = eight if eight > 0 else 0
+        eight += self.values["self.se_tax"]
+        self.values["self.est_tax"] = (eight - self.values["self.refundable_credit"]) if (eight - self.values["self.refundable_credit"]) > 0 else 0
+        twelve = self.values["self.est_tax"] * 0.9
+        fourteen = (twelve - self.values["self.fed_tax_witheld"]) <= 0
+        if (not fourteen == True):
+            self.values["self.req_payments"] = (self.values["self.est_tax"] - self.values["self.fed_tax_witheld"]) > 1000  
+        else:
+            self.values["self.req_payments"] = False
+        self.values["self.est_payments"] = (self.values["self.est_tax"] - self.values["self.fed_tax_witheld"]) * 0.25
+        if (self.values["self.est_payments"] < 0):
+            self.values["self.est_payments"] = 0
 
     @staticmethod
     def updateFields(dictOfValues):

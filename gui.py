@@ -182,7 +182,6 @@ class TaxGui(QWidget):
     def calcResults(self):
         self.goto_page(page=4)
 
-
 # Custom label and text field
 class LabeledText(QHBoxLayout):
     def __init__(self, text_field, lab):
@@ -446,6 +445,15 @@ class Results(QWidget):
         self.st_total = QLabel(self)
         self.tot = QHBoxLayout()
         self.total = QLabel(self)
+        self.est_payments = QHBoxLayout()
+        self.monthly = QLabel(self)
+
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setFrameShadow(QFrame.Shadow.Plain)
+        sep.setLineWidth(1)
+        sep.setFixedWidth(500)
+        sep.setStyleSheet("color: #847DDE;")
 
         self.fed.addWidget(QLabel('<h1>Federal Return:</h1>\t'))
         self.fed.addWidget(self.fed_total)
@@ -453,6 +461,8 @@ class Results(QWidget):
         self.state.addWidget(self.st_total)
         self.tot.addWidget(QLabel('<h1>Total Return:</h1>\t'))
         self.tot.addWidget(self.total)
+        self.est_payments.addWidget(QLabel('<h2>Estimated Payments Required?</h2>\t'))
+        self.est_payments.addWidget(self.monthly)
 
         my_sizer.addSpacing(50)
         my_sizer.addLayout(self.fed)
@@ -460,9 +470,18 @@ class Results(QWidget):
         my_sizer.addLayout(self.state)
         my_sizer.addSpacing(50)
         my_sizer.addLayout(self.tot)
+        my_sizer.addSpacing(25)
+        my_sizer.addWidget(sep)
+        my_sizer.addSpacing(25)
+        my_sizer.addLayout(self.est_payments)
         my_sizer.addStretch(1)
 
-        my_sizer.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        my_sizer.setAlignment(self.fed, Qt.AlignmentFlag.AlignHCenter)
+        my_sizer.setAlignment(self.state, Qt.AlignmentFlag.AlignHCenter)
+        my_sizer.setAlignment(self.tot, Qt.AlignmentFlag.AlignHCenter)
+        my_sizer.setAlignment(self.est_payments, Qt.AlignmentFlag.AlignHCenter)
+        my_sizer.setAlignment(sep, Qt.AlignmentFlag.AlignHCenter)
+        
 
         self.setLayout(my_sizer)
 
@@ -481,12 +500,19 @@ class Results(QWidget):
         calc.fill8863()
         calc.fill1040()
         calc.fillState()
+        calc.calcEstPayments()
         res = calc.getFields()
         grand_total = int(res["self.refund_owe_total"] + res["self.st_refund_owe_total"])
         # Set text values and colors. 
-        self.fed_total.setText(f'<h1>${str(int(res["self.refund_owe_total"]))}</h1>')
-        self.st_total.setText(f'<h1>${str(int(res["self.st_refund_owe_total"]))}</h1>')
-        self.total.setText(f'<h1>${str(grand_total)}</h1>')
+        self.fed_total.setText(f'<h1>${str(abs(int(res["self.refund_owe_total"])))}</h1>')
+        self.st_total.setText(f'<h1>${str(abs(int(res["self.st_refund_owe_total"])))}</h1>')
+        self.total.setText(f'<h1>${str(abs(grand_total))}</h1>')
+        if (res["self.req_payments"] == True):
+            self.monthly.setText(f'<h2>Yes, ${str(int(res["self.est_payments"]))}</h2>')
+            self.monthly.setStyleSheet("color: #DB5461")
+        else:
+            self.monthly.setText(f'<h2>No! Estimate is ${str(int(res["self.est_payments"]))}</h2>')
+            self.monthly.setStyleSheet("color: #ACE894")
         if res["self.refund_owe_total"] < 0:
             self.fed_total.setStyleSheet("color: #DB5461")
         else:
