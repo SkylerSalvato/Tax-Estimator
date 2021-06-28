@@ -145,6 +145,7 @@ class Calculator:
         twentytwo = self.calcFedTax()
         self.values["self.tax"] = twentytwo if twentytwo < twentyfour else twentyfour
         self.values["self.taxable_income"] = hold
+        print(f'Taxable Income: {self.values["self.taxable_income"]} Tax: {self.values["self.tax"]} Five: {five} Twentyfour: {twentyfour}')
 
     def calcAdjIncome(self):
         total_income = self.values["self.int_income"] + self.values["self.div_ordinary"] + self.values["self.cap_gains"] + self.values["self.wages"] + self.values["self.other_income"]
@@ -154,25 +155,25 @@ class Calculator:
         if (not self.values["self.married"]):
             for i in range(len(self.fed_brackets)): 
                 if (self.values["self.taxable_income"] > self.fed_brackets[i][0] and self.values["self.taxable_income"] <= self.fed_brackets[i][1]):
-                    return self.fed_brackets[i][3] + self.fed_brackets[i][2] * (self.values["self.taxable_income"] - self.fed_brackets[i][0])
-                return 0
+                    return self.fed_brackets[i][3] + self.fed_brackets[i][2] * (self.values["self.taxable_income"] - self.fed_brackets[i][0])    
         else:
             for i in range(len(self.fed_brackets)):
                 if (self.values["self.taxable_income"] > (2.00 * self.fed_brackets[i][0]) and self.values["self.taxable_income"] <= (2.00 * self.fed_brackets[i][1])):
                     return (2.00 * self.fed_brackets[i][3]) + self.fed_brackets[i][2] * (self.values["self.taxable_income"] - (2.00 * self.fed_brackets[i][0]))
-                return 0
+        
+        return 0
 
     def calcEstTax(self):
         if (not self.values["self.married"]):
             for i in range(len(self.est_bracket)): 
                 if (self.values["self.taxable_income"] > self.est_bracket[i][0] and self.values["self.taxable_income"] <= self.est_bracket[i][1]):
                     return self.est_bracket[i][3] + self.est_bracket[i][2] * (self.values["self.taxable_income"] - self.est_bracket[i][0])
-                return 0
         else:
             for i in range(len(self.est_bracket)):
                 if (self.values["self.taxable_income"] > (2.00 * self.est_bracket[i][0]) and self.values["self.taxable_income"] <= (2.00 * self.est_bracket[i][1])):
                     return (2.00 * self.est_bracket[i][3]) + self.est_bracket[i][2] * (self.values["self.taxable_income"] - (2.00 * self.est_bracket[i][0]))
-                return 0
+        
+        return 0
     
     def calcStateTax(self):
         if (not self.values["self.married"]):
