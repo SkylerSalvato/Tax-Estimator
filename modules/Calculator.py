@@ -145,7 +145,6 @@ class Calculator:
         twentytwo = self.calcFedTax()
         self.values["self.tax"] = twentytwo if twentytwo < twentyfour else twentyfour
         self.values["self.taxable_income"] = hold
-        print(f'Taxable Income: {self.values["self.taxable_income"]} Tax: {self.values["self.tax"]} Five: {five} Twentyfour: {twentyfour}')
 
     def calcAdjIncome(self):
         total_income = self.values["self.int_income"] + self.values["self.div_ordinary"] + self.values["self.cap_gains"] + self.values["self.wages"] + self.values["self.other_income"]
