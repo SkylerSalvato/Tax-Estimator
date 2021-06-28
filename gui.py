@@ -416,7 +416,7 @@ class Credits(QWidget):
         my_sizer = QVBoxLayout()
         self.education_credit = LabeledText('0', 'Eligible American Opportunity Credit Expenses')
         self.recovery_credit = LabeledText('0', 'Recovery Rebate Credit')
-        self.meal_expense = LabeledText('0', 'Meal Expenses')
+        self.meal_expense = LabeledText('0', 'Meal Expenses (for Self-Employed)')
         
         my_sizer.addSpacing(50)
         my_sizer.addLayout(self.education_credit)
