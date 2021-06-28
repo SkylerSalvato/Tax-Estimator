@@ -416,11 +416,14 @@ class Credits(QWidget):
         my_sizer = QVBoxLayout()
         self.education_credit = LabeledText('0', 'Eligible American Opportunity Credit Expenses')
         self.recovery_credit = LabeledText('0', 'Recovery Rebate Credit')
+        self.meal_expense = LabeledText('0', 'Meal Expenses')
         
         my_sizer.addSpacing(50)
         my_sizer.addLayout(self.education_credit)
         my_sizer.addSpacing(50)
         my_sizer.addLayout(self.recovery_credit)
+        my_sizer.addSpacing(50)
+        my_sizer.addLayout(self.meal_expense)
         my_sizer.addStretch(1)
 
         self.setLayout(my_sizer)
@@ -428,7 +431,8 @@ class Credits(QWidget):
     def save(self):
         upd = {
             "self.edu_expenses" : float(self.education_credit.text()),
-            "self.stimulus_credit" : float(self.recovery_credit.text())
+            "self.stimulus_credit" : float(self.recovery_credit.text()),
+            "self.meal_expense" : float(self.meal_expense.text())
         }
         Calculator.Calculator.updateFields(upd)
 
@@ -489,6 +493,7 @@ class Results(QWidget):
         # Initialize Calculator
         calc = Calculator.Calculator()
         # Run functions
+        calc.fillSchC()
         calc.fillSE()
         calc.fillSch1()
         calc.fillSch2()
@@ -498,6 +503,7 @@ class Results(QWidget):
         calc.adjustTax()
         calc.calcStateTax()
         calc.fill8863()
+        calc.fillSch3()
         calc.fill1040()
         calc.fillState()
         calc.calcEstPayments()

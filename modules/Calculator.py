@@ -50,11 +50,14 @@ class Calculator:
         # Schedule 2 variables
         "self.se_tax" : 0,
 
-        #Schedule 3 variables #Not needed at the moment
+        # Schedule 3 variables #Not needed at the moment
         #self.dependent_child
         #self.retirement_contr_credit
         #self.energy_credit
-        
+        "self.nonrefundable_credits" : 0,
+
+        # Schedule C
+        "self.meal_expense" : 0,
 
         # Schedule SE variables
         "self.fica_tax" : 0,
@@ -109,21 +112,26 @@ class Calculator:
         ]
 
     def fillSE(self):
-        six = self.values["self.nec_total"] * Calculator.PCT_SE
+        six = self.values["self.net_business_profit"] * Calculator.PCT_SE
         ten = six * 0.124
         eleven = six * Calculator.TAX_SE
         self.values["self.fica_tax"] = ten + eleven
         self.values["self.half_fica_tax"] = self.values["self.fica_tax"] * 0.5
 
     def fillSch1(self):
-        self.values["self.other_income"] = self.values["self.nec_total"] + self.values["self.unemployment_income"]
+        self.values["self.other_income"] = self.values["self.net_business_profit"] + self.values["self.unemployment_income"]
         self.values["self.adjust_income"] = self.values["self.half_fica_tax"]
   
     def fillSch2(self):
         self.values["self.se_tax"] = self.values["self.fica_tax"]
   
     def fillSch3(self):
-        pass
+        self.values["self.nonrefundable_credits"] = self.values["self.nonrefundable_aoc"]
+
+    def fillSchC(self):
+        gross = self.values["self.nec_total"]
+        total_expenses = (self.values["self.meal_expense"] * 0.5)
+        self.values["self.net_business_profit"] = gross - total_expenses
 
     def fillSchD(self):
         self.values["self.net_long_gains"] = self.values["self.long_gains"] + self.values["self.cap_distributions"]
@@ -210,10 +218,10 @@ class Calculator:
             self.values["self.business_deduction"] = 0 
 
     def fill1040(self):
-        if ((self.values["self.tax"] - self.values["self.nonrefundable_aoc"]) < 0):
+        if ((self.values["self.tax"] - self.values["self.nonrefundable_credits"]) < 0):
             self.values["self.total_tax"] = 0
         else:
-            self.values["self.total_tax"] = (self.values["self.tax"] - self.values["self.nonrefundable_aoc"]) # Line 22
+            self.values["self.total_tax"] = (self.values["self.tax"] - self.values["self.nonrefundable_credits"]) # Line 22
     
         self.values["self.total_tax"] += self.values["self.se_tax"] # Line 24
         self.values["self.refundable_credit"] = (self.values["self.refundable_aoc"] + self.values["self.stimulus_credit"])
@@ -225,7 +233,7 @@ class Calculator:
 
     def calcEstPayments(self):
         six = self.calcEstTax()
-        eight = six - self.values["self.nonrefundable_aoc"]
+        eight = six - self.values["self.nonrefundable_credits"]
         eight = eight if eight > 0 else 0
         eight += self.values["self.se_tax"]
         self.values["self.est_tax"] = (eight - self.values["self.refundable_credit"]) if (eight - self.values["self.refundable_credit"]) > 0 else 0
