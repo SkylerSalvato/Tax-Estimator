@@ -150,6 +150,7 @@ class Calculator:
         twentyfour = self.calcFedTax()
         hold = self.values["self.taxable_income"]
         self.values["self.taxable_income"] = five
+        self.values["hold"] = five
         twentytwo = self.calcFedTax()
         self.values["self.tax"] = twentytwo if twentytwo < twentyfour else twentyfour
         self.values["self.taxable_income"] = hold
@@ -173,12 +174,12 @@ class Calculator:
     def calcEstTax(self):
         if (not self.values["self.married"]):
             for i in range(len(self.est_bracket)): 
-                if (self.values["self.taxable_income"] > self.est_bracket[i][0] and self.values["self.taxable_income"] <= self.est_bracket[i][1]):
-                    return self.est_bracket[i][3] + self.est_bracket[i][2] * (self.values["self.taxable_income"] - self.est_bracket[i][0])
+                if (self.values["hold"] > self.est_bracket[i][0] and self.values["hold"] <= self.est_bracket[i][1]):
+                    return self.est_bracket[i][3] + self.est_bracket[i][2] * (self.values["hold"] - self.est_bracket[i][0])
         else:
             for i in range(len(self.est_bracket)):
-                if (self.values["self.taxable_income"] > (2.00 * self.est_bracket[i][0]) and self.values["self.taxable_income"] <= (2.00 * self.est_bracket[i][1])):
-                    return (2.00 * self.est_bracket[i][3]) + self.est_bracket[i][2] * (self.values["self.taxable_income"] - (2.00 * self.est_bracket[i][0]))
+                if (self.values["hold"] > (2.00 * self.est_bracket[i][0]) and self.values["hold"] <= (2.00 * self.est_bracket[i][1])):
+                    return (2.00 * self.est_bracket[i][3]) + self.est_bracket[i][2] * (self.values["hold"] - (2.00 * self.est_bracket[i][0]))
         
         return 0
     
@@ -233,6 +234,7 @@ class Calculator:
 
     def calcEstPayments(self):
         six = self.calcEstTax()
+        print(six)
         eight = six - self.values["self.nonrefundable_credits"]
         eight = eight if eight > 0 else 0
         eight += self.values["self.se_tax"]
