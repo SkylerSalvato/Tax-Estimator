@@ -9,7 +9,9 @@ class Calculator:
         # State and federal return variables
         "self.wages" : 0,
         "self.adjusted_gross_income" : 0,
-        "self.STD_DEDUCTION" : 12550,
+        "self.ITEMIZING" : False,
+        "self.TOT_ITEMIZED" : 0,
+        "self.STD_DEDUCTION" : 25900,
         "self.GA_DEDUCTION" : 4600,
         "self.GA_EXEMPT" : 2700,
         "self.taxable_income" : 0,
@@ -24,7 +26,8 @@ class Calculator:
         "self.total_payments" : 0,
         "self.refund_owe_total" : 0,
         "self.refund" : False,
-        "self.married" : False,
+        "self.married" : True,
+        "self.charitable_contributions": 0, # Max 600 (married)
 
         # 1099-NEC & 1099-G variables
         "self.nec_total" : 0,
@@ -56,6 +59,17 @@ class Calculator:
         #self.energy_credit
         "self.nonrefundable_credits" : 0,
 
+        # Schedule A (Itemized Deductions)
+        "self.medical_dental" : 0,
+        "self.state_local_tax" : 0,
+        "self.real_estate_tax" : 0,
+        "self.personal_prop_tax" : 0,
+        "self.mortgage_interest" : 0,
+        "self.pmi" : 0,
+        "self.tithe" : 0,
+        "self.donated_items" : 0,
+        "self.gambling_loss" : 0,
+
         # Schedule C
         "self.meal_expense" : 0,
 
@@ -76,7 +90,7 @@ class Calculator:
         }
 
     def __init__(self):
-        self.fed_brackets = [
+        self.fed_brackets_single = [
             [0.00, 9875.00, 0.10, 0], # min (excl), max (incl), tax rate, sum of prev.
             [9875.00, 40125.00, 0.12, 987.50],
             [40125.00, 85525.00, 0.22, 4617.50],
@@ -84,6 +98,15 @@ class Calculator:
             [163300.00, 207350.00, 0.32, 33271.50],
             [207350.00, 518400.00, 0.35, 47367.50],
             [518400.00, sys.float_info.max, 0.37, 156235.00]
+        ]
+        self.fed_brackets_married = [
+            [0.00, 20550.00, 0.10, 0],
+            [20550.00, 83550.00, 0.12, 8503.00],
+            [83550.00, 178150.00, 0.22, 11958.00],
+            [178150.00, 340100.00, 0.24, 38346.00],
+            [340100.00, 431900.00, 0.32, 50911.50],
+            [431900.00, 647850.00, 0.35, 50911.50],
+            [647850.00, sys.float_info.max, 0.37, 63477.50]
         ]
         self.st_brackets_single = [
             [0.00, 750.00, 0.01, 0],
@@ -100,15 +123,6 @@ class Calculator:
             [5000.00, 7000.00, 0.04, 110.00],
             [7000.00, 10000.00, 0.05, 190.00],
             [10000.00, sys.float_info.max, 0.0575, 340.00]
-        ]
-        self.est_bracket = [
-            [0.00, 9950.00, 0.10, 0], # min (excl), max (incl), tax rate, sum of prev.
-            [9950.00, 40525.00, 0.12, 995.00],
-            [40525.00, 86375.00, 0.22, 4664.00],
-            [86375.00, 164925.00, 0.24, 14751.00],
-            [164925.00, 209425.00, 0.32, 33603.00],
-            [209425.00, 523600.00, 0.35, 47843.00],
-            [523600.00, sys.float_info.max, 0.37, 157804.25]
         ]
 
     def fillSE(self):
@@ -128,6 +142,44 @@ class Calculator:
     def fillSch3(self):
         self.values["self.nonrefundable_credits"] = self.values["self.nonrefundable_aoc"]
 
+    def fillSchA(self):
+        ### Medical and Dental Expenses (exceeding 7.5% Adjusted Gross Income)
+        # Premiums (unless paid with pre-tax dollars)
+        # Prescriptions
+        # Doctor visits
+        # Exams, Labs, Tests
+        # Glasses, Conacts (+ Saline solution and Enzyme cleaner), LASIK
+        # Ambulance, or yourself
+        # Breast pumps
+        med_dent = max(0, self.values["self.medical_dental"] - self.values["self.adjusted_gross_income"] * 7.5)
+        
+        ### Taxes You Paid
+        # State and local income tax (or Sales tax but that requires tracking everything you buy, but good if you buy a car or keep track of everything)
+        # Property (Real Estate) taxes
+        # Personal Property taxes (Car Registration) 
+        tax_you_paid = min(5000, self.values["self.state_local_tax"] + self.values["self.real_estate_tax"] + self.values["self.personal_prop_tax"]) if self.values["self.married"] else min(10000, self.values["self.state_local_tax"] + self.values["self.real_estate_tax"] + self.values["self.personal_prop_tax"]) 
+
+        ### Interest You Paid
+        # Mortgage Interest 
+        # Mortgage Insurance Premiums (max Adjusted Gross Income = 109000)
+        # (Student Loan Interest goes to Sch 1) 
+        interest_you_paid = self.values["self.mortgage_interest"] + self.values["self.pmi"] if self.values["self.adjusted_gross_income"] <= 100000 else self.values["self.mortgage_interest"]
+
+        ### Gifts to Charity
+        # Tithe 
+        # Donated Used Items
+        gifts = self.values["self.tithe"] + self.values["self.donated_items"]
+
+        ### Casualty and Theft Losses
+
+        ### Other Itemized Deductions
+        # Gambling Losses
+        other = self.values["self.gambling_loss"]
+
+        ### Total
+        self.values["self.TOT_ITEMIZED"] = med_dent + tax_you_paid + interest_you_paid + gifts + other
+        pass
+
     def fillSchC(self):
         gross = self.values["self.nec_total"]
         total_expenses = (self.values["self.meal_expense"] * 0.5)
@@ -138,62 +190,84 @@ class Calculator:
         self.values["self.cap_gains"] = self.values["self.net_long_gains"] + self.values["self.short_gains"]
 
     def adjustTax(self):
-        self.values["self.taxable_income"] = (self.values["self.adjusted_gross_income"] - self.values["self.STD_DEDUCTION"] - self.values["self.business_deduction"]) if not self.values["self.married"] else (self.values["self.adjusted_gross_income"] - (2.00 * self.values["self.STD_DEDUCTION"]) - self.values["self.business_deduction"])
-        three = self.values["self.net_long_gains"] if self.values["self.net_long_gains"] < self.values["self.cap_gains"] else self.values["self.cap_gains"]
-        four = self.values["self.div_qualified"] + three
-        five = (self.values["self.taxable_income"] - four) if (self.values["self.taxable_income"] - four) > 0 else 0
-        six = 40000 if not self.values["self.married"] else 80000
-        seven = self.values["self.taxable_income"] if self.values["self.taxable_income"] < six else six
-        eight = five if five < seven else seven
-        nine = seven - eight # Taxed at 0%
-        ten = four if four < self.values["self.taxable_income"] else self.values["self.taxable_income"]
-        twentyfour = self.calcFedTax()
-        hold = self.values["self.taxable_income"]
-        self.values["self.taxable_income"] = five
-        self.values["hold"] = five
-        twentytwo = self.calcFedTax()
-        self.values["self.tax"] = twentytwo if twentytwo < twentyfour else twentyfour
-        self.values["self.taxable_income"] = hold
+        if self.values["self.ITEMIZING"]:
+            deductions = [
+                self.values["self.TOT_ITEMIZED"],
+                self.values["self.business_deduction"]
+            ]
+        else:
+            deductions = [
+                self.values["self.STD_DEDUCTION"] if not self.values["self.married"] else 2.00 * self.values["self.STD_DEDUCTION"],
+                self.values["self.charitable_contributions"],
+                self.values["self.business_deduction"]
+            ]
+        st_deductions = [
+            self.values["self.GA_DEDUCTION"],
+            self.values["self.GA_EXEMPT"]
+        ]
+        self.values["self.taxable_income"] = Calculator.massDeduct(self.values["self.adjusted_gross_income"], deductions)
+        self.values["self.st_taxable_income"] = Calculator.massDeduct(self.values["self.adjusted_gross_income"], st_deductions)
+
+    def fillCapGain(self):
+        # 1. get 1040 line 15 (taxable income)
+        one = self.values['self.taxable_income']
+        # 2. get 1040 line 3a (qualified dividends)
+        # 3. get 1040 line 7 (capital gain or loss)
+        # 4. add 2 and 3
+        three = min(self.values["self.net_long_gains"], self.values["self.cap_gains"])
+        four = self.values['self.div_qualified'] + three
+        # 5. subtract 4 from 1
+        five = max(0, one - four)
+        # 6. enter 40,400 if single or 80,800 if married
+        # 7. min(line 1, line 6)
+        seven = min(one, 40400) if not self.values['self.married'] else min(one, 80800)
+        # 8. min(line 5, line 7)
+        eight = min(five, seven)
+        # 9. subtract 8 from 7 (taxed at 0%)
+        nine = seven - eight
+        # 10. min(line 1, line 4)
+        ten = min(one, four)
+        # 11. line 9
+        # 12. subtract 11 from 10
+        twelve = ten - nine
+        # 13. enter 445,850 if single or 501600 if married
+        # 14. min(line 1, line 13)
+        fourteen = min(one, 445,850) if not self.values['self.married'] else min(one, 501600)
+        # 15. add 5 to 9
+        fifteen = five + nine
+        # 16. subtract 15 from 14 (min value is 0)
+        sixteen = max(fourteen - fifteen, 0)
+        # 17. min(line 12, line 16)
+        # 18. 17 taxed at 15% (17 x 0.15)
+        eighteen = min(twelve, sixteen) * 0.15
+        # 19. add 9 to 17
+        # 20. subtract 19 from 10
+        # 21. 20 taxed at 20%
+        twentyone = (ten - (nine + min(twelve, sixteen))) * 0.2
+        # 22. use tax computation worksheet to figure tax on line 5
+        twentytwo = Calculator.calcSimpleTax(self.fed_brackets_single, five) if self.values['self.married'] else Calculator.calcSimpleTax(self.fed_brackets_married, five)
+        # 23. add 18, 21, and 22
+        twentythree = eighteen + twentyone + twentytwo
+        # 24. use tax computation worksheet to figure tax on line 1
+        twentyfour = Calculator.calcSimpleTax(self.fed_brackets_single, one) if self.values['self.married'] else Calculator.calcSimpleTax(self.fed_brackets_married, one)
+        # 25. min(line 23, line 24) -> send to 1040 line 16 blank space with checkbox
+        self.values['self.tax'] = min(twentythree, twentyfour)
 
     def calcAdjIncome(self):
         total_income = self.values["self.int_income"] + self.values["self.div_ordinary"] + self.values["self.cap_gains"] + self.values["self.wages"] + self.values["self.other_income"]
         self.values["self.adjusted_gross_income"] = total_income - self.values["self.adjust_income"]
   
     def calcFedTax(self):
-        if (not self.values["self.married"]):
-            for i in range(len(self.fed_brackets)): 
-                if (self.values["self.taxable_income"] > self.fed_brackets[i][0] and self.values["self.taxable_income"] <= self.fed_brackets[i][1]):
-                    return self.fed_brackets[i][3] + self.fed_brackets[i][2] * (self.values["self.taxable_income"] - self.fed_brackets[i][0])    
+        if not self.values["self.married"]:
+            return Calculator.calcSimpleTax(self.fed_brackets_single, self.values['self.taxable_income'])
         else:
-            for i in range(len(self.fed_brackets)):
-                if (self.values["self.taxable_income"] > (2.00 * self.fed_brackets[i][0]) and self.values["self.taxable_income"] <= (2.00 * self.fed_brackets[i][1])):
-                    return (2.00 * self.fed_brackets[i][3]) + self.fed_brackets[i][2] * (self.values["self.taxable_income"] - (2.00 * self.fed_brackets[i][0]))
-        
-        return 0
-
-    def calcEstTax(self):
-        if (not self.values["self.married"]):
-            for i in range(len(self.est_bracket)): 
-                if (self.values["hold"] > self.est_bracket[i][0] and self.values["hold"] <= self.est_bracket[i][1]):
-                    return self.est_bracket[i][3] + self.est_bracket[i][2] * (self.values["hold"] - self.est_bracket[i][0])
-        else:
-            for i in range(len(self.est_bracket)):
-                if (self.values["hold"] > (2.00 * self.est_bracket[i][0]) and self.values["hold"] <= (2.00 * self.est_bracket[i][1])):
-                    return (2.00 * self.est_bracket[i][3]) + self.est_bracket[i][2] * (self.values["hold"] - (2.00 * self.est_bracket[i][0]))
-        
-        return 0
+            return Calculator.calcSimpleTax(self.fed_brackets_married, self.values['self.taxable_income'])
     
     def calcStateTax(self):
-        if (not self.values["self.married"]):
-            self.values["self.st_taxable_income"] = self.values["self.adjusted_gross_income"] - (self.values["self.GA_DEDUCTION"] + self.values["self.GA_EXEMPT"])
-            for i in range(len(self.st_brackets_single)):
-                if (self.values["self.st_taxable_income"] > self.st_brackets_single[i][0] and self.values["self.st_taxable_income"] <= self.st_brackets_single[i][1]):
-                    self.values["self.st_tax"] = self.st_brackets_single[i][3] + self.st_brackets_single[i][2] * (self.values["self.st_taxable_income"] - self.st_brackets_single[i][0])
+        if not self.values["self.married"]:
+            self.values["self.st_tax"] = Calculator.calcSimpleTax(self.st_brackets_single, self.values["self.st_taxable_income"])
         else:
-            self.values["self.st_taxable_income"] = self.values["self.adjusted_gross_income"] - (self.values["self.GA_DEDUCTION"] + self.values["self.GA_EXEMPT"])
-            for i in range(len(self.st_brackets_married)):
-                if (self.values["self.st_taxable_income"] > self.st_brackets_married[i][0] and self.values["self.st_taxable_income"] <= self.st_brackets_married[i][1]):
-                    self.values["self.st_tax"] = self.st_brackets_married[i][3] + self.st_brackets_married[i][2] * (self.values["self.st_taxable_income"] - self.st_brackets_married[i][0])
+            self.values["self.st_tax"] = Calculator.calcSimpleTax(self.st_brackets_married, self.values["self.st_taxable_income"])
 
     def fill8863(self):
         tweight = self.values["self.edu_expenses"] - 2000.00 # (1/4 for amt above 2000)
@@ -205,25 +279,25 @@ class Calculator:
     
         self.values["self.refundable_aoc"] = Calculator.PCT_AOC_REFUND * self.values["self.aoc_credit"]
         nine = self.values["self.aoc_credit"] - self.values["self.refundable_aoc"]
-        if (nine < self.values["self.tax"]) :
-            self.values["self.nonrefundable_aoc"] = nine
-        else:
-            self.values["self.nonrefundable_aoc"] = self.values["self.tax"]
+        self.values["self.nonrefundable_aoc"] = min(nine, self.values["self.tax"])
 
     def fill8995(self):
         five = (self.values["self.nec_total"] - self.values["self.half_fica_tax"]) * 0.2
-        precalculated = (self.values["self.adjusted_gross_income"] - self.values["self.STD_DEDUCTION"]) if not self.values["self.married"] else (self.values["self.adjusted_gross_income"] - (2.00 * self.values["self.STD_DEDUCTION"]))
+        if self.values["self.ITEMIZING"]:
+            deductions = [
+                self.values["self.TOT_ITEMIZED"]
+            ]
+        else:
+            deductions = [
+                self.values["self.STD_DEDUCTION"] if not self.values["self.married"] else 2.00 * self.values["self.STD_DEDUCTION"], 
+                self.values["self.charitable_contributions"]
+            ]
+        precalculated = Calculator.massDeduct(self.values["self.adjusted_gross_income"], deductions)
         fourteen = (precalculated - self.values["self.cap_gains"]) * 0.2
-        self.values["self.business_deduction"] = five if five < fourteen else fourteen
-        if (self.values["self.business_deduction"] < 0):
-            self.values["self.business_deduction"] = 0 
+        self.values["self.business_deduction"] = max(0, min(five, fourteen))
 
     def fill1040(self):
-        if ((self.values["self.tax"] - self.values["self.nonrefundable_credits"]) < 0):
-            self.values["self.total_tax"] = 0
-        else:
-            self.values["self.total_tax"] = (self.values["self.tax"] - self.values["self.nonrefundable_credits"]) # Line 22
-    
+        self.values["self.total_tax"] = max(0, (self.values["self.tax"] - self.values["self.nonrefundable_credits"])) # Line 22
         self.values["self.total_tax"] += self.values["self.se_tax"] # Line 24
         self.values["self.refundable_credit"] = (self.values["self.refundable_aoc"] + self.values["self.stimulus_credit"])
         self.values["self.total_payments"] = (self.values["self.fed_tax_witheld"] + self.values["self.refundable_credit"])
@@ -233,21 +307,25 @@ class Calculator:
         self.values["self.st_refund_owe_total"] = self.values["self.st_tax_witheld"] - self.values["self.st_tax"]
 
     def calcEstPayments(self):
-        six = self.calcEstTax()
-        print(six)
-        eight = six - self.values["self.nonrefundable_credits"]
-        eight = eight if eight > 0 else 0
-        eight += self.values["self.se_tax"]
-        self.values["self.est_tax"] = (eight - self.values["self.refundable_credit"]) if (eight - self.values["self.refundable_credit"]) > 0 else 0
+        self.values["self.est_tax"] = max(0, self.values["self.total_tax"] - self.values["self.refundable_credit"])
         twelve = self.values["self.est_tax"] * 0.9
         fourteen = (twelve - self.values["self.fed_tax_witheld"]) <= 0
-        if (not fourteen == True):
+        if not fourteen:
             self.values["self.req_payments"] = (self.values["self.est_tax"] - self.values["self.fed_tax_witheld"]) > 1000  
-        else:
-            self.values["self.req_payments"] = False
-        self.values["self.est_payments"] = (self.values["self.est_tax"] - self.values["self.fed_tax_witheld"]) * 0.25
-        if (self.values["self.est_payments"] < 0):
-            self.values["self.est_payments"] = 0
+        self.values["self.est_payments"] = max(0, (self.values["self.est_tax"] - self.values["self.fed_tax_witheld"]) * 0.25)
+
+    @staticmethod
+    def calcSimpleTax(taxTable, taxableIncome):
+        for bracket in taxTable:
+            if (taxableIncome > bracket[0] and taxableIncome <= bracket[1]):
+                    return bracket[3] + bracket[2] * (taxableIncome - bracket[0])
+        return 0
+    
+    @staticmethod
+    def massDeduct(value, deductions):
+        for d in deductions:
+            value -= d
+        return value
 
     @staticmethod
     def updateFields(dictOfValues):

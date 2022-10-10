@@ -1,3 +1,4 @@
+from cgitb import text
 import sys
 
 from modules import Calculator
@@ -184,15 +185,17 @@ class TaxGui(QWidget):
 
 # Custom label and text field
 class LabeledText(QHBoxLayout):
-    def __init__(self, text_field, lab):
+    def __init__(self, text_field, lab, tooltip_text=None):
         super().__init__()
-        self.setupUI(text_field, lab)
+        self.setupUI(text_field, tooltip_text, lab)
 
-    def setupUI(self, text_field, lab='Update Text'):
+    def setupUI(self, text_field, tooltip_text, lab='Update Text'):
         self.setSpacing(10)
         self.addStretch()
         self.addWidget(QLabel(str(lab + ':')))
-        self.addWidget(QLineEdit(text_field))
+        line_edit = QLineEdit(text_field)
+        line_edit.setToolTip(tooltip_text)
+        self.addWidget(line_edit)
         self.itemAt(2).widget().setFixedWidth(130)
         self.addStretch()
 
@@ -223,7 +226,7 @@ class Info(QWidget):
         radio_box.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         radio_box.setSpacing(10)
         filing_status.setFixedSize(200, 100)
-        sng.setChecked(True)
+        mrd.setChecked(True)
 
         self.group.addButton(sng)
         self.group.addButton(mrd)
@@ -342,26 +345,43 @@ class Income(QScrollArea):
         }
         Calculator.Calculator.updateFields(upd)
 
-class Deductions(QWidget):
+class Deductions(QScrollArea):
     def __init__(self):
         super().__init__()
+        # Setup scrollarea
+        self.setWidgetResizable(True)
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        self.setMinimumHeight(100)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.setFrameShape(QFrame.Shape.NoFrame)
         # Run setup
         self.setupUI()
     
     def setupUI(self):
         # Variables
-        container = QHBoxLayout()
-        layout = QVBoxLayout()
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        rb_container = QHBoxLayout()
         radio_box = QHBoxLayout()
         rbox = QGroupBox('Deduction Type')
         self.group = QButtonGroup(radio_box)
         choice1 = QRadioButton('Standard Deduction')
         choice2 = QRadioButton('Itemized Deduction')
-        self.std_deduction = LabeledText('12550', 'Current Standard Deduction')
+        self.std_deduction = LabeledText('25900', 'Current Standard Deduction')
+        self.charity = LabeledText('0', 'Charitable Contributions')
         self.ga_deduction = LabeledText('4600', 'GA Standard Deduction')
         self.ga_exemption = LabeledText('2700', 'GA Exemption')
         title1 = QLabel('Standard Deduction:')
         title2 = QLabel('Itemized Deduction')
+        self.medical_dental = LabeledText('0', 'Medical and Dental Expenses', '(e.g. Prescriptions, Doctor visits, X-Rays, Glasses, Contacts + Saline solution)')
+        self.state_local_tax = LabeledText('0', 'Paid State and Local Taxes', '(e.g. Previous year\'s state income tax or Sales tax paid throughout the year)')
+        self.real_estate_tax = LabeledText('0', 'Real Estate Tax', '(e.g. County property taxes)')
+        self.personal_prop_tax = LabeledText('0', 'Personal Property Tax', '(e.g Ad Valorem tax)')
+        self.mortgage_interest = LabeledText('0', 'Paid Mortgage Interest (Form 1098)')
+        self.pmi = LabeledText('0', 'Paid Mortgage Insurance Premiums')
+        self.tithe = LabeledText('0', 'Tithe')
+        self.donated_items = LabeledText('0', 'Fair Price of Donated Items')
+        self.gambling_loss = LabeledText('0', 'Gambling Losses')
         
         radio_box.setSpacing(10)
         rbox.setFixedSize(300, 100)
@@ -375,34 +395,72 @@ class Deductions(QWidget):
         radio_box.addWidget(choice1)
         radio_box.addWidget(choice2)
         rbox.setLayout(radio_box)
-        container.addWidget(rbox)
+        rb_container.addWidget(rbox)
 
         layout.addSpacing(50)
-        layout.addLayout(container)
+        layout.addLayout(rb_container)
         layout.addSpacing(25)
         layout.addWidget(title1)
         layout.addLayout(self.std_deduction)
+        layout.addSpacing(25)
+        layout.addLayout(self.charity)
         layout.addSpacing(25)
         layout.addLayout(self.ga_deduction)
         layout.addSpacing(25)
         layout.addLayout(self.ga_exemption)
         layout.addSpacing(25)
         layout.addWidget(title2)
+        layout.addSpacing(25)
+        layout.addLayout(self.medical_dental)
+        layout.addSpacing(25)
+        layout.addLayout(self.state_local_tax)
+        layout.addSpacing(25)
+        layout.addLayout(self.real_estate_tax)
+        layout.addSpacing(25)
+        layout.addLayout(self.personal_prop_tax)
+        layout.addSpacing(25)
+        layout.addLayout(self.mortgage_interest)
+        layout.addSpacing(25)
+        layout.addLayout(self.pmi)
+        layout.addSpacing(25)
+        layout.addLayout(self.tithe)
+        layout.addSpacing(25)
+        layout.addLayout(self.donated_items)
+        layout.addSpacing(25)
+        layout.addLayout(self.gambling_loss)
         layout.addStretch(1)
-        self.setLayout(layout)
+
+        # Contain layout in widget
+        self.setWidget(container)
         
         # Style Sheet
         self.setStyleSheet("QGroupBox { border: 2px solid gray; border-radius: 3px; margin-top: 10px; }"
                             "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; padding: 0 15px;  }"
+                            "QScrollBar:vertical { width:15px; background: #373F47; border:none } "
+                            "QScrollBar::handle:vertical { background-color: #847DDE; }"
+                            "QScrollBar::handle:vertical:hover { background-color: #9792E3; }"
+                            "QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical { background:none; }"
+                            "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background:none; }"
                             )
 
     def save(self):
         if (not self.group.checkedButton() is None):
             # Add line that sets a variable to check if using standard deduction or not
+            itemizing = False if self.group.checkedButton().text() == 'Standard Deduction' else True
             upd = {
+                "self.ITEMIZING" : itemizing,
                 "self.STD_DEDUCTION" : float(self.std_deduction.text()),
                 "self.GA_DEDUCTION" : float(self.ga_deduction.text()),
-                "self.GA_EXEMPT" : float(self.ga_exemption.text())
+                "self.GA_EXEMPT" : float(self.ga_exemption.text()),
+                "self.medical_dental" : float(self.medical_dental.text()),
+                "self.state_local_tax" : float(self.state_local_tax.text()),
+                "self.real_estate_tax" : float(self.real_estate_tax.text()),
+                "self.personal_prop_tax" : float(self.personal_prop_tax.text()),
+                "self.mortgage_interest" : float(self.mortgage_interest.text()),
+                "self.pmi" : float(self.pmi.text()),
+                "self.tithe" : float(self.tithe.text()),
+                "self.donated_items" : float(self.donated_items.text()),
+                "self.gambling_loss" : float(self.gambling_loss.text())
             }
             # Update fields
             Calculator.Calculator.updateFields(upd)
@@ -499,8 +557,10 @@ class Results(QWidget):
         calc.fillSch2()
         calc.fillSchD()
         calc.calcAdjIncome()
+        calc.fillSchA()
         calc.fill8995()
         calc.adjustTax()
+        calc.fillCapGain()
         calc.calcStateTax()
         calc.fill8863()
         calc.fillSch3()
