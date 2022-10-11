@@ -1,14 +1,14 @@
-from cgitb import text
+from cgitb import handler, text
 import sys
 
 from modules import Calculator
 
 # Qt widgets
-from PyQt6.QtWidgets import (QFrame, QScrollArea, QGroupBox, QHBoxLayout, QVBoxLayout, 
+from PySide6.QtWidgets import (QFrame, QScrollArea, QGroupBox, QHBoxLayout, QVBoxLayout, 
     QApplication, QStackedWidget, QSizePolicy, 
-    QWidget, QLabel, QLineEdit, QPushButton, QRadioButton, QButtonGroup)
-from PyQt6.QtCore import QPoint, QPropertyAnimation, QRect, Qt
-from PyQt6.QtGui import QCursor, QIcon
+    QWidget, QLabel, QLineEdit, QPushButton, QRadioButton, QButtonGroup, QCheckBox)
+from PySide6.QtCore import Property, QPoint, QPointF, QPropertyAnimation, QRectF, QEasingCurve, QSequentialAnimationGroup, QSize, Qt, Slot, Signal
+from PySide6.QtGui import QCursor, QIcon, QPaintEvent, QPen, QPainter, QBrush, QColor
 
 # Main Window
 class TaxGui(QWidget):
@@ -206,6 +206,139 @@ class LabeledText(QHBoxLayout):
                 value = self.itemAt(i).widget().text()
         return value
 
+class AnimatedSwitch(QCheckBox):
+
+    _transparent_pen = QPen(Qt.GlobalColor.transparent)
+    _handle_pen = QPen(Qt.GlobalColor.lightGray)
+
+    def __init__(self, parent=None, initial_state=False):
+        super().__init__(parent)
+        bar_color = "#23292E"
+        checked_color = "#9792E3"
+        pulse_unchecked_color = "#44999999"
+        handle_color = "#9792E3"
+        # Save our properties on the object via self, so we can access them later
+        # in the paintEvent.
+        self._bar_brush = QBrush(bar_color)
+        self._bar_checked_brush = QBrush(bar_color)
+
+        self._handle_brush = QBrush(handle_color)
+        self._handle_checked_brush = QBrush(QColor(checked_color))
+
+        self._pulse_unchecked_animation = QBrush(QColor(pulse_unchecked_color))
+        self._pulse_checked_animation = QBrush(QColor(pulse_unchecked_color))
+
+        # Setup the rest of the widget.
+        self.setContentsMargins(8, 0, 8, 0)
+        self._handle_position = 0 if not initial_state else 1
+
+        self._pulse_radius = 0
+
+        self.animation = QPropertyAnimation(self, b"handle_position", self)
+        self.animation.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        self.animation.setDuration(200)  # time in ms
+
+        self.pulse_anim = QPropertyAnimation(self, b"pulse_radius", self)
+        self.pulse_anim.setDuration(350)  # time in ms
+        self.pulse_anim.setStartValue(10)
+        self.pulse_anim.setEndValue(20)
+
+        self.animations_group = QSequentialAnimationGroup()
+        self.animations_group.addAnimation(self.animation)
+        self.animations_group.addAnimation(self.pulse_anim)
+
+        self.setMaximumWidth(75)
+        self.setChecked(initial_state)
+        self.stateChanged.connect(self.setup_animation)        
+    
+    def sizeHint(self):
+        return QSize(58, 45)
+
+    def hitButton(self, pos: QPoint):
+        return self.contentsRect().contains(pos)
+    
+    @Slot(int)
+    def setup_animation(self, value):
+        self.animations_group.stop()
+        if value:
+            self.animation.setEndValue(1)
+        else:
+            self.animation.setEndValue(0)
+        self.animations_group.start()
+    
+    def paintEvent(self, e: QPaintEvent):
+        contRect = self.contentsRect()
+        handleRadius = round(0.24 * contRect.height())
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+
+        p.setPen(self._transparent_pen)
+        barRect = QRectF(0, 0, contRect.width() - handleRadius, 0.40 * contRect.height())
+        barRect.moveCenter(contRect.center())
+        rounding = barRect.height() / 2
+        
+        trailLength = contRect.width() - 2 * handleRadius
+        xPos = contRect.x() + handleRadius + trailLength * self._handle_position
+
+        if self.pulse_anim.state() == QPropertyAnimation.State.Running:
+            p.setBrush(
+                self._pulse_checked_animation if self.isChecked() else self._pulse_unchecked_animation
+            )
+            p.drawEllipse(QPointF(xPos, barRect.center().y()), self._pulse_radius, self._pulse_radius)
+
+        if self.isChecked():
+            p.setBrush(self._bar_checked_brush)
+            p.drawRoundedRect(barRect, rounding, rounding)
+            p.setBrush(self._handle_checked_brush)
+        else:
+            p.setBrush(self._bar_brush)
+            p.drawRoundedRect(barRect, rounding, rounding)
+            p.setPen(self._handle_pen)
+            p.setBrush(self._handle_brush)
+
+        p.drawEllipse(QPointF(xPos, barRect.center().y()), handleRadius, handleRadius)
+
+        p.end()
+
+    @Property(float)
+    def handle_position(self):
+        return self._handle_position
+
+    @handle_position.setter
+    def handle_position(self, pos):
+        self._handle_position = pos
+        self.update()
+
+    @Property(float)
+    def pulse_radius(self):
+        return self._pulse_radius
+
+    @pulse_radius.setter
+    def pulse_radius(self, pos):
+        self._pulse_radius = pos
+        self.update()
+    
+class AnimatedSwitchBox(QHBoxLayout):
+    def __init__(self, optionA, optionB, initial_state=False):
+        super().__init__()
+        self.setupUI(initial_state, optionA, optionB)
+        self._optionA = optionA
+        self._optionB = optionB
+    
+    def setupUI(self, initial_state, optionA, optionB):
+        self.setSpacing(10)
+        self.addStretch()
+        self.addWidget(QLabel(str(optionA)))
+        self.checkbox = AnimatedSwitch(initial_state=initial_state)
+        self.addWidget(self.checkbox)
+        self.addWidget(QLabel(str(optionB)))
+        self.addStretch()
+
+    def text(self):
+        if self.checkbox.isChecked():
+            return self._optionB
+        return self._optionA
+
 # Info Page
 class Info(QWidget):
     def __init__(self):
@@ -216,41 +349,22 @@ class Info(QWidget):
     def setupUI(self):
         # Variables
         layout = QVBoxLayout()
-        radio_box = QHBoxLayout()
-        filing_status = QGroupBox('Filing status')
-        self.group = QButtonGroup(radio_box)
-        sng = QRadioButton('Single')
-        mrd = QRadioButton('Married')
+        self.filing_status = AnimatedSwitchBox('Single', 'Married', True)
 
         layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        radio_box.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        radio_box.setSpacing(10)
-        filing_status.setFixedSize(200, 100)
-        mrd.setChecked(True)
 
-        self.group.addButton(sng)
-        self.group.addButton(mrd)
-        radio_box.addWidget(sng)
-        radio_box.addWidget(mrd)
-        filing_status.setLayout(radio_box)
         layout.addSpacing(50)
-        layout.addWidget(filing_status)
+        layout.addLayout(self.filing_status)
         layout.addStretch(1)
         self.setLayout(layout)
-        
-        # Style Sheet
-        self.setStyleSheet("QGroupBox { border: 2px solid gray; border-radius: 3px; margin-top: 10px; }"
-                            "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; padding: 0 15px;  }"
-                            )
 
     def save(self):
-        if (not self.group.checkedButton() is None):
-            married = False if self.group.checkedButton().text() == 'Single' else True
-            upd = {
-                "self.married" : married
-            }
-            # Update fields
-            Calculator.Calculator.updateFields(upd)
+        married = False if self.filing_status.text() == 'Single' else True
+        upd = {
+            "self.married" : married
+        }
+        # Update fields
+        Calculator.Calculator.updateFields(upd)
 
 
 
@@ -361,12 +475,7 @@ class Deductions(QScrollArea):
         # Variables
         container = QWidget()
         layout = QVBoxLayout(container)
-        rb_container = QHBoxLayout()
-        radio_box = QHBoxLayout()
-        rbox = QGroupBox('Deduction Type')
-        self.group = QButtonGroup(radio_box)
-        choice1 = QRadioButton('Standard Deduction')
-        choice2 = QRadioButton('Itemized Deduction')
+        self.deduction_type = AnimatedSwitchBox('Standard Deduction', 'Itemized Deduction', True)
         self.std_deduction = LabeledText('25900', 'Current Standard Deduction')
         self.charity = LabeledText('0', 'Charitable Contributions')
         self.ga_deduction = LabeledText('4600', 'GA Standard Deduction')
@@ -383,22 +492,11 @@ class Deductions(QScrollArea):
         self.donated_items = LabeledText('0', 'Fair Price of Donated Items')
         self.gambling_loss = LabeledText('0', 'Gambling Losses')
         
-        radio_box.setSpacing(10)
-        rbox.setFixedSize(300, 100)
-        choice1.setChecked(True)
         title1.setAlignment(Qt.AlignmentFlag.AlignLeft)
         title2.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
-        # Buttons
-        self.group.addButton(choice1)
-        self.group.addButton(choice2)
-        radio_box.addWidget(choice1)
-        radio_box.addWidget(choice2)
-        rbox.setLayout(radio_box)
-        rb_container.addWidget(rbox)
-
         layout.addSpacing(50)
-        layout.addLayout(rb_container)
+        layout.addLayout(self.deduction_type)
         layout.addSpacing(25)
         layout.addWidget(title1)
         layout.addLayout(self.std_deduction)
@@ -444,26 +542,25 @@ class Deductions(QScrollArea):
                             )
 
     def save(self):
-        if (not self.group.checkedButton() is None):
-            # Add line that sets a variable to check if using standard deduction or not
-            itemizing = False if self.group.checkedButton().text() == 'Standard Deduction' else True
-            upd = {
-                "self.ITEMIZING" : itemizing,
-                "self.STD_DEDUCTION" : float(self.std_deduction.text()),
-                "self.GA_DEDUCTION" : float(self.ga_deduction.text()),
-                "self.GA_EXEMPT" : float(self.ga_exemption.text()),
-                "self.medical_dental" : float(self.medical_dental.text()),
-                "self.state_local_tax" : float(self.state_local_tax.text()),
-                "self.real_estate_tax" : float(self.real_estate_tax.text()),
-                "self.personal_prop_tax" : float(self.personal_prop_tax.text()),
-                "self.mortgage_interest" : float(self.mortgage_interest.text()),
-                "self.pmi" : float(self.pmi.text()),
-                "self.tithe" : float(self.tithe.text()),
-                "self.donated_items" : float(self.donated_items.text()),
-                "self.gambling_loss" : float(self.gambling_loss.text())
-            }
-            # Update fields
-            Calculator.Calculator.updateFields(upd)
+        # Add line that sets a variable to check if using standard deduction or not
+        itemizing = False if self.deduction_type.text() == 'Standard Deduction' else True
+        upd = {
+            "self.ITEMIZING" : itemizing,
+            "self.STD_DEDUCTION" : float(self.std_deduction.text()),
+            "self.GA_DEDUCTION" : float(self.ga_deduction.text()),
+            "self.GA_EXEMPT" : float(self.ga_exemption.text()),
+            "self.medical_dental" : float(self.medical_dental.text()),
+            "self.state_local_tax" : float(self.state_local_tax.text()),
+            "self.real_estate_tax" : float(self.real_estate_tax.text()),
+            "self.personal_prop_tax" : float(self.personal_prop_tax.text()),
+            "self.mortgage_interest" : float(self.mortgage_interest.text()),
+            "self.pmi" : float(self.pmi.text()),
+            "self.tithe" : float(self.tithe.text()),
+            "self.donated_items" : float(self.donated_items.text()),
+            "self.gambling_loss" : float(self.gambling_loss.text())
+        }
+        # Update fields
+        Calculator.Calculator.updateFields(upd)
 
 class Credits(QWidget):
     def __init__(self):
