@@ -1,5 +1,6 @@
 from cgitb import handler, text
 import sys
+import os
 
 from modules import Calculator
 
@@ -7,8 +8,8 @@ from modules import Calculator
 from PySide6.QtWidgets import (QFrame, QScrollArea, QGroupBox, QHBoxLayout, QVBoxLayout, 
     QApplication, QStackedWidget, QSizePolicy, 
     QWidget, QLabel, QLineEdit, QPushButton, QRadioButton, QButtonGroup, QCheckBox)
-from PySide6.QtCore import Property, QPoint, QPointF, QPropertyAnimation, QRectF, QEasingCurve, QSequentialAnimationGroup, QSize, Qt, Slot, Signal
-from PySide6.QtGui import QCursor, QIcon, QPaintEvent, QPen, QPainter, QBrush, QColor
+from PySide6.QtCore import Property, QPoint, QPointF, QPropertyAnimation, QRectF, QEasingCurve, QSequentialAnimationGroup, QSize, QDir, Qt, Slot, Signal
+from PySide6.QtGui import QCursor, QIcon, QPaintEvent, QPen, QPainter, QBrush, QColor, QFontDatabase
 
 # Main Window
 class TaxGui(QWidget):
@@ -192,9 +193,28 @@ class LabeledText(QHBoxLayout):
     def setupUI(self, text_field, tooltip_text, lab='Update Text'):
         self.setSpacing(10)
         self.addStretch()
-        self.addWidget(QLabel(str(lab + ':')))
+        label = QLabel(str(lab + ':'))
+        label.setStyleSheet('font-family: Lato;font-size: 15px;')
+        self.addWidget(label)
         line_edit = QLineEdit(text_field)
         line_edit.setToolTip(tooltip_text)
+        line_edit.setStyleSheet(
+            """
+            QLineEdit {
+            background-color: rgb(33, 37, 43);
+            border-radius: 5px;
+            border: 2px solid rgb(33, 37, 43);
+            padding-left: 10px;
+            selection-color: rgb(255, 255, 255);
+            selection-background-color: rgb(255, 121, 198);
+            }
+            QLineEdit:hover {
+                border: 2px solid rgb(64, 71, 88);
+            }
+            QLineEdit:focus {
+                border: 2px solid rgb(91, 101, 124);
+            }
+            """)
         self.addWidget(line_edit)
         self.itemAt(2).widget().setFixedWidth(130)
         self.addStretch()
@@ -325,14 +345,27 @@ class AnimatedSwitchBox(QHBoxLayout):
         self._optionA = optionA
         self._optionB = optionB
     
+    def toggleBoldText(self):
+        if self.checkbox.isChecked():
+            self.labelA.setStyleSheet("font-family: Lato; color: white; font-size: 15px")
+            self.labelB.setStyleSheet("font-family: Lato; color: #9792E3; font-size: 15px")
+        else: 
+            self.labelA.setStyleSheet("font-family: Lato; color: #9792E3;; font-size: 15px")
+            self.labelB.setStyleSheet("font-family: Lato; color: white; font-size: 15px")
+
     def setupUI(self, initial_state, optionA, optionB):
         self.setSpacing(10)
         self.addStretch()
-        self.addWidget(QLabel(str(optionA)))
+        self.labelA = QLabel(str(optionA))
+        self.labelB = QLabel(str(optionB))
+        self.addWidget(self.labelA)
         self.checkbox = AnimatedSwitch(initial_state=initial_state)
         self.addWidget(self.checkbox)
-        self.addWidget(QLabel(str(optionB)))
+        self.addWidget(self.labelB)
         self.addStretch()
+        self.toggleBoldText()
+        self.checkbox.toggled.connect(self.toggleBoldText)
+
 
     def text(self):
         if self.checkbox.isChecked():
@@ -405,7 +438,7 @@ class Income(QScrollArea):
         hbox.addWidget(self.fed_tax_witheld)
         hbox.addSpacing(25)
         hbox.addWidget(QLabel('State Tax Witheld:'))
-        hbox.addWidget(self.st_tax_witheld)            
+        hbox.addWidget(self.st_tax_witheld)     
 
         # Configure Page
         #layout.setSpacing(15)
@@ -441,6 +474,21 @@ class Income(QScrollArea):
                             "QScrollBar::handle:vertical:hover { background-color: #9792E3; }"
                             "QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical { background:none; }"
                             "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background:none; }"
+                            "QLabel{ font-family: Lato;font-size: 15px }"
+                            """QLineEdit {
+                            background-color: rgb(33, 37, 43);
+                            border-radius: 5px;
+                            border: 2px solid rgb(33, 37, 43);
+                            padding-left: 10px;
+                            selection-color: rgb(255, 255, 255);
+                            selection-background-color: rgb(255, 121, 198);
+                            }
+                            QLineEdit:hover {
+                                border: 2px solid rgb(64, 71, 88);
+                            }
+                            QLineEdit:focus {
+                                border: 2px solid rgb(91, 101, 124);
+                            }"""
         )   
 
     def save(self):
@@ -493,7 +541,9 @@ class Deductions(QScrollArea):
         self.gambling_loss = LabeledText('0', 'Gambling Losses')
         
         title1.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        title1.setStyleSheet("font-family: Lato;font-size: 15px")
         title2.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        title2.setStyleSheet("font-family: Lato;font-size: 15px")
 
         layout.addSpacing(50)
         layout.addLayout(self.deduction_type)
@@ -689,10 +739,20 @@ class Results(QWidget):
         else:
             self.total.setStyleSheet("color: #ACE894")
 
+def load_fonts_from_dir(directory):
+    families = set()
+    for fi in QDir(directory).entryInfoList(["*.ttf"]):
+        _id = QFontDatabase.addApplicationFont(fi.absoluteFilePath())
+        families |= set(QFontDatabase.applicationFontFamilies(_id))
+    return families
+
 # Main method
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    font_dir = "./fonts"
+    families = load_fonts_from_dir(os.fspath(font_dir))
+    styles = QFontDatabase.styles("Lato")
     tg = TaxGui()
-    tg.resize(800,600)
+    tg.resize(900,700)
     tg.show()
     app.exec()
