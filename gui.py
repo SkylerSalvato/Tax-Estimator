@@ -58,8 +58,8 @@ class TaxGui(QWidget):
         buttons = [self.info, self.income, self.deductions, self.credits, self.results]        
 
         # Containers for layout styling
-        tab_container = QWidget(self)
-        self.tools_container = QWidget(self)
+        tab_container = QWidget(self, objectName='tabContainer')
+        self.tools_container = QWidget(self, objectName='toolsContainer')
 
         # Page navigation tabs initilization and configuring
         tabs = QVBoxLayout(tab_container)
@@ -103,20 +103,6 @@ class TaxGui(QWidget):
         
         # Define app layout
         self.setLayout(screen)
-
-        # StyleSheets
-        tab_container.setStyleSheet( "QWidget { background-color: #23292E;}"
-                            "QPushButton { background-color: #23292E; color: white; border: none; padding: 3px; height: 50%;}"
-                            "QPushButton:hover { background-color: #47525C; }"
-                            "QPushButton:pressed { background-color: #9792E3;}"
-                            "QPushButton:disabled { background-color: #373F47; border-left-style: inset; border-left-width: 5px; border-left-color: #847DDE;}")
-        
-        self.tools_container.setStyleSheet("QWidget { background-color: #1B1F23;}"
-                            "QPushButton { background-image: url('exit24.png'); border: none; width: 24px; height: 24px;}"
-                            "QPushButton:hover { background-color: #47525C; }"
-                            "QPushButton:pressed { background-color: #505C68;}")
-    
-        self.setStyleSheet("QWidget {background-color: #373F47; color: white;}")
 
     # Disable button of current index
     def set_button_state(self, index):
@@ -194,27 +180,10 @@ class LabeledText(QHBoxLayout):
         self.setSpacing(10)
         self.addStretch()
         label = QLabel(str(lab + ':'))
-        label.setStyleSheet('font-family: Lato;font-size: 15px;')
+        label.setMinimumWidth(320)
         self.addWidget(label)
         line_edit = QLineEdit(text_field)
         line_edit.setToolTip(tooltip_text)
-        line_edit.setStyleSheet(
-            """
-            QLineEdit {
-            background-color: rgb(33, 37, 43);
-            border-radius: 5px;
-            border: 2px solid rgb(33, 37, 43);
-            padding-left: 10px;
-            selection-color: rgb(255, 255, 255);
-            selection-background-color: rgb(255, 121, 198);
-            }
-            QLineEdit:hover {
-                border: 2px solid rgb(64, 71, 88);
-            }
-            QLineEdit:focus {
-                border: 2px solid rgb(91, 101, 124);
-            }
-            """)
         self.addWidget(line_edit)
         self.itemAt(2).widget().setFixedWidth(130)
         self.addStretch()
@@ -233,10 +202,10 @@ class AnimatedSwitch(QCheckBox):
 
     def __init__(self, parent=None, initial_state=False):
         super().__init__(parent)
-        bar_color = "#23292E"
-        checked_color = "#9792E3"
-        pulse_unchecked_color = "#44999999"
-        handle_color = "#9792E3"
+        bar_color = '#23292E'
+        checked_color = '#9792E3'
+        pulse_unchecked_color = '#44999999'
+        handle_color = '#9792E3'
         # Save our properties on the object via self, so we can access them later
         # in the paintEvent.
         self._bar_brush = QBrush(bar_color)
@@ -254,11 +223,11 @@ class AnimatedSwitch(QCheckBox):
 
         self._pulse_radius = 0
 
-        self.animation = QPropertyAnimation(self, b"handle_position", self)
+        self.animation = QPropertyAnimation(self, b'handle_position', self)
         self.animation.setEasingCurve(QEasingCurve.Type.InOutCubic)
         self.animation.setDuration(200)  # time in ms
 
-        self.pulse_anim = QPropertyAnimation(self, b"pulse_radius", self)
+        self.pulse_anim = QPropertyAnimation(self, b'pulse_radius', self)
         self.pulse_anim.setDuration(350)  # time in ms
         self.pulse_anim.setStartValue(10)
         self.pulse_anim.setEndValue(20)
@@ -347,11 +316,11 @@ class AnimatedSwitchBox(QHBoxLayout):
     
     def toggleBoldText(self):
         if self.checkbox.isChecked():
-            self.labelA.setStyleSheet("font-family: Lato; color: white; font-size: 15px")
-            self.labelB.setStyleSheet("font-family: Lato; color: #9792E3; font-size: 15px")
+            self.labelA.setStyleSheet('font-family: Lato; color: white; font-size: 15px')
+            self.labelB.setStyleSheet('font-family: Lato; color: #9792E3; font-size: 15px')
         else: 
-            self.labelA.setStyleSheet("font-family: Lato; color: #9792E3;; font-size: 15px")
-            self.labelB.setStyleSheet("font-family: Lato; color: white; font-size: 15px")
+            self.labelA.setStyleSheet('font-family: Lato; color: #9792E3;; font-size: 15px')
+            self.labelB.setStyleSheet('font-family: Lato; color: white; font-size: 15px')
 
     def setupUI(self, initial_state, optionA, optionB):
         self.setSpacing(10)
@@ -383,18 +352,21 @@ class Info(QWidget):
         # Variables
         layout = QVBoxLayout()
         self.filing_status = AnimatedSwitchBox('Single', 'Married', True)
+        self.dependents = LabeledText('0', 'Dependents', 'NOT CURRENTLY FUNCTIONAL')
 
         layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
         layout.addSpacing(50)
         layout.addLayout(self.filing_status)
+        layout.addSpacing(25)
+        layout.addLayout(self.dependents)
         layout.addStretch(1)
         self.setLayout(layout)
 
     def save(self):
         married = False if self.filing_status.text() == 'Single' else True
         upd = {
-            "self.married" : married
+            'self.married' : married
         }
         # Update fields
         Calculator.Calculator.updateFields(upd)
@@ -420,6 +392,7 @@ class Income(QScrollArea):
         layout = QVBoxLayout(container)
         hbox = QHBoxLayout()
         self.wages = QLineEdit('0')
+        self.wages.setToolTip('(Box 1; 401(k), Simple IRA, 403(b) annuity, or 457 government already subtracted)')
         self.fed_tax_witheld = QLineEdit('0')
         self.st_tax_witheld = QLineEdit('0')
         self.int_field = LabeledText('0', '1099-INT Box 1')
@@ -462,48 +435,22 @@ class Income(QScrollArea):
         layout.addLayout(self.unemploy_field)
         layout.addStretch(1)
 
-        # Contain layout in widget
-        self.setWidget(container)     
-
-        # Style Sheet
-        self.setStyleSheet("QPushButton { border: none; background-color: #23292E; }"
-                            "QPushButton:hover { background-color: #47525C; }"
-                            "QPushButton:pressed { background-color: #9792E3; }"
-                            "QScrollBar:vertical { width:15px; background: #373F47; border:none } "
-                            "QScrollBar::handle:vertical { background-color: #847DDE; }"
-                            "QScrollBar::handle:vertical:hover { background-color: #9792E3; }"
-                            "QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical { background:none; }"
-                            "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background:none; }"
-                            "QLabel{ font-family: Lato;font-size: 15px }"
-                            """QLineEdit {
-                            background-color: rgb(33, 37, 43);
-                            border-radius: 5px;
-                            border: 2px solid rgb(33, 37, 43);
-                            padding-left: 10px;
-                            selection-color: rgb(255, 255, 255);
-                            selection-background-color: rgb(255, 121, 198);
-                            }
-                            QLineEdit:hover {
-                                border: 2px solid rgb(64, 71, 88);
-                            }
-                            QLineEdit:focus {
-                                border: 2px solid rgb(91, 101, 124);
-                            }"""
-        )   
+        # Contain layout in widget  
+        self.setWidget(container)   
 
     def save(self):
         upd = {
-            "self.wages" : float(self.wages.text()),
-            "self.fed_tax_witheld" : float(self.fed_tax_witheld.text()),
-            "self.st_tax_witheld" : float(self.st_tax_witheld.text()),
-            "self.int_income" : float(self.int_field.text()),
-            "self.div_ordinary" : float(self.div_field.text()),
-            "self.div_qualified" : float(self.div2_field.text()),
-            "self.short_gains" : float(self.short_field.text()),
-            "self.long_gains" : float(self.long_field.text()),
-            "self.cap_distributions" : float(self.distributions.text()),
-            "self.nec_total" : float(self.nec_field.text()),
-            "self.unemployment_income" : float(self.unemploy_field.text())
+            'self.wages' : float(self.wages.text()),
+            'self.fed_tax_witheld' : float(self.fed_tax_witheld.text()),
+            'self.st_tax_witheld' : float(self.st_tax_witheld.text()),
+            'self.int_income' : float(self.int_field.text()),
+            'self.div_ordinary' : float(self.div_field.text()),
+            'self.div_qualified' : float(self.div2_field.text()),
+            'self.short_gains' : float(self.short_field.text()),
+            'self.long_gains' : float(self.long_field.text()),
+            'self.cap_distributions' : float(self.distributions.text()),
+            'self.nec_total' : float(self.nec_field.text()),
+            'self.unemployment_income' : float(self.unemploy_field.text())
         }
         Calculator.Calculator.updateFields(upd)
 
@@ -541,9 +488,7 @@ class Deductions(QScrollArea):
         self.gambling_loss = LabeledText('0', 'Gambling Losses')
         
         title1.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        title1.setStyleSheet("font-family: Lato;font-size: 15px")
         title2.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        title2.setStyleSheet("font-family: Lato;font-size: 15px")
 
         layout.addSpacing(50)
         layout.addLayout(self.deduction_type)
@@ -581,33 +526,24 @@ class Deductions(QScrollArea):
         # Contain layout in widget
         self.setWidget(container)
         
-        # Style Sheet
-        self.setStyleSheet("QGroupBox { border: 2px solid gray; border-radius: 3px; margin-top: 10px; }"
-                            "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top center; padding: 0 15px;  }"
-                            "QScrollBar:vertical { width:15px; background: #373F47; border:none } "
-                            "QScrollBar::handle:vertical { background-color: #847DDE; }"
-                            "QScrollBar::handle:vertical:hover { background-color: #9792E3; }"
-                            "QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical { background:none; }"
-                            "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background:none; }"
-                            )
 
     def save(self):
         # Add line that sets a variable to check if using standard deduction or not
         itemizing = False if self.deduction_type.text() == 'Standard Deduction' else True
         upd = {
-            "self.ITEMIZING" : itemizing,
-            "self.STD_DEDUCTION" : float(self.std_deduction.text()),
-            "self.GA_DEDUCTION" : float(self.ga_deduction.text()),
-            "self.GA_EXEMPT" : float(self.ga_exemption.text()),
-            "self.medical_dental" : float(self.medical_dental.text()),
-            "self.state_local_tax" : float(self.state_local_tax.text()),
-            "self.real_estate_tax" : float(self.real_estate_tax.text()),
-            "self.personal_prop_tax" : float(self.personal_prop_tax.text()),
-            "self.mortgage_interest" : float(self.mortgage_interest.text()),
-            "self.pmi" : float(self.pmi.text()),
-            "self.tithe" : float(self.tithe.text()),
-            "self.donated_items" : float(self.donated_items.text()),
-            "self.gambling_loss" : float(self.gambling_loss.text())
+            'self.ITEMIZING' : itemizing,
+            'self.STD_DEDUCTION' : float(self.std_deduction.text()),
+            'self.GA_DEDUCTION' : float(self.ga_deduction.text()),
+            'self.GA_EXEMPT' : float(self.ga_exemption.text()),
+            'self.medical_dental' : float(self.medical_dental.text()),
+            'self.state_local_tax' : float(self.state_local_tax.text()),
+            'self.real_estate_tax' : float(self.real_estate_tax.text()),
+            'self.personal_prop_tax' : float(self.personal_prop_tax.text()),
+            'self.mortgage_interest' : float(self.mortgage_interest.text()),
+            'self.pmi' : float(self.pmi.text()),
+            'self.tithe' : float(self.tithe.text()),
+            'self.donated_items' : float(self.donated_items.text()),
+            'self.gambling_loss' : float(self.gambling_loss.text())
         }
         # Update fields
         Calculator.Calculator.updateFields(upd)
@@ -635,9 +571,9 @@ class Credits(QWidget):
 
     def save(self):
         upd = {
-            "self.edu_expenses" : float(self.education_credit.text()),
-            "self.stimulus_credit" : float(self.recovery_credit.text()),
-            "self.meal_expense" : float(self.meal_expense.text())
+            'self.edu_expenses' : float(self.education_credit.text()),
+            'self.stimulus_credit' : float(self.recovery_credit.text()),
+            'self.meal_expense' : float(self.meal_expense.text())
         }
         Calculator.Calculator.updateFields(upd)
 
@@ -662,7 +598,7 @@ class Results(QWidget):
         sep.setFrameShadow(QFrame.Shadow.Plain)
         sep.setLineWidth(1)
         sep.setFixedWidth(500)
-        sep.setStyleSheet("color: #847DDE;")
+        sep.setStyleSheet('color: #847DDE;')
 
         self.fed.addWidget(QLabel('<h1>Federal Return:</h1>\t'))
         self.fed.addWidget(self.fed_total)
@@ -715,33 +651,33 @@ class Results(QWidget):
         calc.fillState()
         calc.calcEstPayments()
         res = calc.getFields()
-        grand_total = int(res["self.refund_owe_total"] + res["self.st_refund_owe_total"])
+        grand_total = int(res['self.refund_owe_total'] + res['self.st_refund_owe_total'])
         # Set text values and colors. 
         self.fed_total.setText(f'<h1>${str(abs(int(res["self.refund_owe_total"])))}</h1>')
         self.st_total.setText(f'<h1>${str(abs(int(res["self.st_refund_owe_total"])))}</h1>')
         self.total.setText(f'<h1>${str(abs(grand_total))}</h1>')
-        if (res["self.req_payments"] == True):
+        if (res['self.req_payments'] == True):
             self.monthly.setText(f'<h2>Yes, ${str(int(res["self.est_payments"]))}</h2>')
-            self.monthly.setStyleSheet("color: #DB5461")
+            self.monthly.setStyleSheet('color: #DB5461')
         else:
             self.monthly.setText(f'<h2>No! Estimate is ${str(int(res["self.est_payments"]))}</h2>')
-            self.monthly.setStyleSheet("color: #ACE894")
-        if res["self.refund_owe_total"] < 0:
-            self.fed_total.setStyleSheet("color: #DB5461")
+            self.monthly.setStyleSheet('color: #ACE894')
+        if res['self.refund_owe_total'] < 0:
+            self.fed_total.setStyleSheet('color: #DB5461')
         else:
-            self.fed_total.setStyleSheet("color: #ACE894")
-        if res["self.st_refund_owe_total"] < 0:
-            self.st_total.setStyleSheet("color: #DB5461")
+            self.fed_total.setStyleSheet('color: #ACE894')
+        if res['self.st_refund_owe_total'] < 0:
+            self.st_total.setStyleSheet('color: #DB5461')
         else:
-            self.st_total.setStyleSheet("color: #ACE894")
+            self.st_total.setStyleSheet('color: #ACE894')
         if grand_total < 0:
-            self.total.setStyleSheet("color: #DB5461")
+            self.total.setStyleSheet('color: #DB5461')
         else:
-            self.total.setStyleSheet("color: #ACE894")
+            self.total.setStyleSheet('color: #ACE894')
 
 def load_fonts_from_dir(directory):
     families = set()
-    for fi in QDir(directory).entryInfoList(["*.ttf"]):
+    for fi in QDir(directory).entryInfoList(['*.ttf']):
         _id = QFontDatabase.addApplicationFont(fi.absoluteFilePath())
         families |= set(QFontDatabase.applicationFontFamilies(_id))
     return families
@@ -749,9 +685,51 @@ def load_fonts_from_dir(directory):
 # Main method
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    font_dir = "./fonts"
+    app.setStyleSheet("""
+        #toolsContainer { background-color: #1B1F23;}
+        #toolsContainer QWidget { background-color: #1B1F23;}
+        #toolsContainer QPushButton { background-image: url('exit24.png'); border: none; width: 24px; height: 24px;}
+        #toolsContainer QPushButton:hover { background-color: #47525C; }
+        #toolsContainer QPushButton:pressed { background-color: #505C68;}
+
+        #tabContainer { background-color: #23292E;}
+        #tabContainer QWidget { background-color: #23292E;}
+        #tabContainer QPushButton { background-color: #23292E; color: white; border: none; padding: 3px; height: 50%;}
+        #tabContainer QPushButton:hover { background-color: #47525C; }
+        #tabContainer QPushButton:pressed { background-color: #9792E3;}
+        #tabContainer QPushButton:disabled { background-color: #373F47; border-left-style: inset; border-left-width: 5px; border-left-color: #847DDE;}
+
+        QWidget {background-color: #373F47; color: white;}
+        QLabel {font-family: Lato; font-size: 15px;} 
+        QLineEdit {
+            background-color: #21252B;
+            border-radius: 5px;
+            border: 2px solid #21252B;
+            padding-left: 10px;
+            selection-color: rgb(255, 255, 255);
+            selection-background-color: rgb(255, 121, 198);
+            font-size: 15px;
+        }
+        QLineEdit:hover {
+            border: 2px solid rgb(64, 71, 88);
+        }
+        QLineEdit:focus {
+            border: 2px solid rgb(91, 101, 124);
+        }
+
+        QPushButton { border: none; background-color: #23292E; }
+        QPushButton:hover { background-color: #47525C; }
+        QPushButton:pressed { background-color: #9792E3; }
+        QScrollBar:vertical { width:15px; background: #373F47; border:none } 
+        QScrollBar::handle:vertical { background-color: #847DDE; }
+        QScrollBar::handle:vertical:hover { background-color: #9792E3; }
+        QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical { background:none; }
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background:none; }
+
+""")
+    font_dir = './fonts'
     families = load_fonts_from_dir(os.fspath(font_dir))
-    styles = QFontDatabase.styles("Lato")
+    styles = QFontDatabase.styles('Lato')
     tg = TaxGui()
     tg.resize(900,700)
     tg.show()

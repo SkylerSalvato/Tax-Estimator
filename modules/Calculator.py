@@ -210,17 +210,17 @@ class Calculator:
 
     def fillCapGain(self):
         # 1. get 1040 line 15 (taxable income)
-        one = self.values['self.taxable_income']
+        one = self.values["self.taxable_income"]
         # 2. get 1040 line 3a (qualified dividends)
         # 3. get 1040 line 7 (capital gain or loss)
         # 4. add 2 and 3
         three = min(self.values["self.net_long_gains"], self.values["self.cap_gains"])
-        four = self.values['self.div_qualified'] + three
+        four = self.values["self.div_qualified"] + three
         # 5. subtract 4 from 1
         five = max(0, one - four)
         # 6. enter 40,400 if single or 80,800 if married
         # 7. min(line 1, line 6)
-        seven = min(one, 40400) if not self.values['self.married'] else min(one, 80800)
+        seven = min(one, 40400) if not self.values["self.married"] else min(one, 80800)
         # 8. min(line 5, line 7)
         eight = min(five, seven)
         # 9. subtract 8 from 7 (taxed at 0%)
@@ -232,7 +232,7 @@ class Calculator:
         twelve = ten - nine
         # 13. enter 445,850 if single or 501600 if married
         # 14. min(line 1, line 13)
-        fourteen = min(one, 445,850) if not self.values['self.married'] else min(one, 501600)
+        fourteen = min(one, 445,850) if not self.values["self.married"] else min(one, 501600)
         # 15. add 5 to 9
         fifteen = five + nine
         # 16. subtract 15 from 14 (min value is 0)
@@ -245,13 +245,13 @@ class Calculator:
         # 21. 20 taxed at 20%
         twentyone = (ten - (nine + min(twelve, sixteen))) * 0.2
         # 22. use tax computation worksheet to figure tax on line 5
-        twentytwo = Calculator.calcSimpleTax(self.fed_brackets_single, five) if self.values['self.married'] else Calculator.calcSimpleTax(self.fed_brackets_married, five)
+        twentytwo = Calculator.calcSimpleTax(self.fed_brackets_single, five) if self.values["self.married"] else Calculator.calcSimpleTax(self.fed_brackets_married, five)
         # 23. add 18, 21, and 22
         twentythree = eighteen + twentyone + twentytwo
         # 24. use tax computation worksheet to figure tax on line 1
-        twentyfour = Calculator.calcSimpleTax(self.fed_brackets_single, one) if self.values['self.married'] else Calculator.calcSimpleTax(self.fed_brackets_married, one)
+        twentyfour = Calculator.calcSimpleTax(self.fed_brackets_single, one) if self.values["self.married"] else Calculator.calcSimpleTax(self.fed_brackets_married, one)
         # 25. min(line 23, line 24) -> send to 1040 line 16 blank space with checkbox
-        self.values['self.tax'] = min(twentythree, twentyfour)
+        self.values["self.tax"] = min(twentythree, twentyfour)
 
     def calcAdjIncome(self):
         total_income = self.values["self.int_income"] + self.values["self.div_ordinary"] + self.values["self.cap_gains"] + self.values["self.wages"] + self.values["self.other_income"]
@@ -259,9 +259,9 @@ class Calculator:
   
     def calcFedTax(self):
         if not self.values["self.married"]:
-            return Calculator.calcSimpleTax(self.fed_brackets_single, self.values['self.taxable_income'])
+            return Calculator.calcSimpleTax(self.fed_brackets_single, self.values["self.taxable_income"])
         else:
-            return Calculator.calcSimpleTax(self.fed_brackets_married, self.values['self.taxable_income'])
+            return Calculator.calcSimpleTax(self.fed_brackets_married, self.values["self.taxable_income"])
     
     def calcStateTax(self):
         if not self.values["self.married"]:
