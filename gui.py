@@ -403,6 +403,9 @@ class Income(QScrollArea):
         self.distributions = LabeledText('0', 'Qualified Distributions')
         self.nec_field = LabeledText('0', '1099-NEC Wages')
         self.unemploy_field = LabeledText('0', 'Unemployment Checks')
+        self.gambling_income = LabeledText('0', 'Gambling Income')
+        self.stock_options = LabeledText('0', 'Employee Stock Options')
+        self.rental_income = LabeledText('0', 'Rental Income')
         
         hbox.addWidget(QLabel('W-2 Wages:'))
         hbox.addWidget(self.wages)
@@ -433,6 +436,12 @@ class Income(QScrollArea):
         layout.addLayout(self.nec_field)
         layout.addSpacing(25)
         layout.addLayout(self.unemploy_field)
+        layout.addSpacing(25)
+        layout.addLayout(self.gambling_income)
+        layout.addSpacing(25)
+        layout.addLayout(self.stock_options)
+        layout.addSpacing(25)
+        layout.addLayout(self.rental_income)
         layout.addStretch(1)
 
         # Contain layout in widget  
@@ -450,7 +459,10 @@ class Income(QScrollArea):
             'self.long_gains' : float(self.long_field.text()),
             'self.cap_distributions' : float(self.distributions.text()),
             'self.nec_total' : float(self.nec_field.text()),
-            'self.unemployment_income' : float(self.unemploy_field.text())
+            'self.unemployment_income' : float(self.unemploy_field.text()),
+            'self.gambling_income' : float(self.gambling_income.text()),
+            'self.stock_options' : float(self.stock_options.text()),
+            'self.rental_income' : float(self.rental_income.text())
         }
         Calculator.Calculator.updateFields(upd)
 
@@ -475,8 +487,9 @@ class Deductions(QScrollArea):
         self.charity = LabeledText('0', 'Charitable Contributions')
         self.ga_deduction = LabeledText('4600', 'GA Standard Deduction')
         self.ga_exemption = LabeledText('2700', 'GA Exemption')
-        title1 = QLabel('Standard Deduction:')
-        title2 = QLabel('Itemized Deduction')
+        title = QLabel('General Deductions', objectName="dedLabel")
+        title1 = QLabel('Standard Deductions', objectName="dedLabel")
+        title2 = QLabel('Itemized Deductions', objectName="dedLabel")
         self.medical_dental = LabeledText('0', 'Medical and Dental Expenses', '(e.g. Prescriptions, Doctor visits, X-Rays, Glasses, Contacts + Saline solution)')
         self.state_local_tax = LabeledText('0', 'Paid State and Local Taxes', '(e.g. Previous year\'s state income tax or Sales tax paid throughout the year)')
         self.real_estate_tax = LabeledText('0', 'Real Estate Tax', '(e.g. County property taxes)')
@@ -486,12 +499,27 @@ class Deductions(QScrollArea):
         self.tithe = LabeledText('0', 'Tithe')
         self.donated_items = LabeledText('0', 'Fair Price of Donated Items')
         self.gambling_loss = LabeledText('0', 'Gambling Losses')
+        self.educator_expenses = LabeledText('0', 'Educator Expenses', '(Max $250)')
+        self.hsa_contributions = LabeledText('0', 'Post-tax HSA Contributions')
+        self.student_loan_interest = LabeledText('0', 'Student Loan Interest', '(Must have made a payment during year and have gross income < 85,000 (Single) or 170,000 (Married))')
+        self.rental_expenses = LabeledText('0', 'Rental Property Expenses')
         
+        title.setAlignment(Qt.AlignmentFlag.AlignLeft)
         title1.setAlignment(Qt.AlignmentFlag.AlignLeft)
         title2.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
         layout.addSpacing(50)
         layout.addLayout(self.deduction_type)
+        layout.addSpacing(25)
+        layout.addWidget(title)
+        layout.addSpacing(25)
+        layout.addLayout(self.educator_expenses)
+        layout.addSpacing(25)
+        layout.addLayout(self.hsa_contributions)
+        layout.addSpacing(25)
+        layout.addLayout(self.student_loan_interest)
+        layout.addSpacing(25)
+        layout.addLayout(self.rental_expenses)
         layout.addSpacing(25)
         layout.addWidget(title1)
         layout.addLayout(self.std_deduction)
@@ -543,7 +571,11 @@ class Deductions(QScrollArea):
             'self.pmi' : float(self.pmi.text()),
             'self.tithe' : float(self.tithe.text()),
             'self.donated_items' : float(self.donated_items.text()),
-            'self.gambling_loss' : float(self.gambling_loss.text())
+            'self.gambling_loss' : float(self.gambling_loss.text()),
+            'self.educator_expenses' : float(self.educator_expenses.text()),
+            'self.hsa_contributions' : float(self.hsa_contributions.text()),
+            'self.student_loan_interest' : float(self.student_loan_interest.text()),
+            'self.rental_expenses' : float(self.rental_expenses.text())
         }
         # Update fields
         Calculator.Calculator.updateFields(upd)
@@ -699,12 +731,15 @@ if __name__ == '__main__':
         #tabContainer QPushButton:pressed { background-color: #9792E3;}
         #tabContainer QPushButton:disabled { background-color: #373F47; border-left-style: inset; border-left-width: 5px; border-left-color: #847DDE;}
 
+        #dedLabel { color: #ACE894; }
+
         QWidget {background-color: #373F47; color: white;}
         QLabel {font-family: Lato; font-size: 15px;} 
+
         QLineEdit {
             background-color: #21252B;
             border-radius: 5px;
-            border: 2px solid #21252B;
+            border: 2px solid #9792E3;
             padding-left: 10px;
             selection-color: rgb(255, 255, 255);
             selection-background-color: rgb(255, 121, 198);
@@ -731,6 +766,6 @@ if __name__ == '__main__':
     families = load_fonts_from_dir(os.fspath(font_dir))
     styles = QFontDatabase.styles('Lato')
     tg = TaxGui()
-    tg.resize(900,700)
+    tg.resize(960,720)
     tg.show()
     app.exec()

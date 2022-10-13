@@ -5,6 +5,7 @@ class Calculator:
     TAX_SE = 0.029 # Self Employment Tax
     PCT_AOC = 0.25
     PCT_AOC_REFUND = 0.4
+    MAX_EDUCATORS_EXPENSE = 250
     values = {
         # State and federal return variables
         "self.wages" : 0,
@@ -49,6 +50,13 @@ class Calculator:
         # Schedule 1 variables
         "self.other_income" : 0,
         "self.adjust_income" : 0,
+        "self.gambling_income" : 0,
+        "self.stock_options" : 0,
+        "self.rental_income" : 0,
+        "self.educator_expenses" : 0,
+        "self.hsa_contributions" : 0,
+        "self.student_loan_interest" : 0,
+        "self.rental_expenses" : 0,
 
         # Schedule 2 variables
         "self.se_tax" : 0,
@@ -134,7 +142,20 @@ class Calculator:
 
     def fillSch1(self):
         self.values["self.other_income"] = self.values["self.net_business_profit"] + self.values["self.unemployment_income"]
+        self.values["self.other_income"] += self.values["self.gambling_income"]
+        self.values["self.other_income"] += self.values["self.stock_options"]
+        self.values["self.other_income"] += self.values["self.rental_income"]
+
         self.values["self.adjust_income"] = self.values["self.half_fica_tax"]
+        self.values["self.adjust_income"] += min(Calculator.MAX_EDUCATORS_EXPENSE, self.values["self.educator_expenses"])
+        self.values["self.adjust_income"] += self.values["self.hsa_contributions"]
+        self.values["self.adjust_income"] += self.values["self.rental_expenses"]
+        temp_total_income = self.values["self.int_income"] + self.values["self.div_ordinary"] + self.values["self.cap_gains"] + self.values["self.wages"] + self.values["self.other_income"]
+        temp_adjusted_gross_income = temp_total_income - self.values["self.adjust_income"]
+        student_loan_int_max = temp_adjusted_gross_income - 70000 if not self.values["self.married"] else temp_adjusted_gross_income - 140000
+        student_loan_int_percent = round(student_loan_int_max / 15000, 3) if not self.values["self.married"] else round(student_loan_int_max / 30000, 3)
+        tot_student_loan_int_deduction = min(2500, self.values["self.student_loan_interest"]) * student_loan_int_percent
+        self.values["self.adjust_income"] += tot_student_loan_int_deduction
   
     def fillSch2(self):
         self.values["self.se_tax"] = self.values["self.fica_tax"]
@@ -157,7 +178,7 @@ class Calculator:
         # State and local income tax (or Sales tax but that requires tracking everything you buy, but good if you buy a car or keep track of everything)
         # Property (Real Estate) taxes
         # Personal Property taxes (Car Registration) 
-        tax_you_paid = min(5000, self.values["self.state_local_tax"] + self.values["self.real_estate_tax"] + self.values["self.personal_prop_tax"]) if self.values["self.married"] else min(10000, self.values["self.state_local_tax"] + self.values["self.real_estate_tax"] + self.values["self.personal_prop_tax"]) 
+        tax_you_paid = min(5000, self.values["self.state_local_tax"] + self.values["self.real_estate_tax"] + self.values["self.personal_prop_tax"]) if not self.values["self.married"] else min(10000, self.values["self.state_local_tax"] + self.values["self.real_estate_tax"] + self.values["self.personal_prop_tax"]) 
 
         ### Interest You Paid
         # Mortgage Interest 
@@ -245,11 +266,11 @@ class Calculator:
         # 21. 20 taxed at 20%
         twentyone = (ten - (nine + min(twelve, sixteen))) * 0.2
         # 22. use tax computation worksheet to figure tax on line 5
-        twentytwo = Calculator.calcSimpleTax(self.fed_brackets_single, five) if self.values["self.married"] else Calculator.calcSimpleTax(self.fed_brackets_married, five)
+        twentytwo = Calculator.calcSimpleTax(self.fed_brackets_single, five) if not self.values["self.married"] else Calculator.calcSimpleTax(self.fed_brackets_married, five)
         # 23. add 18, 21, and 22
         twentythree = eighteen + twentyone + twentytwo
         # 24. use tax computation worksheet to figure tax on line 1
-        twentyfour = Calculator.calcSimpleTax(self.fed_brackets_single, one) if self.values["self.married"] else Calculator.calcSimpleTax(self.fed_brackets_married, one)
+        twentyfour = Calculator.calcSimpleTax(self.fed_brackets_single, one) if not self.values["self.married"] else Calculator.calcSimpleTax(self.fed_brackets_married, one)
         # 25. min(line 23, line 24) -> send to 1040 line 16 blank space with checkbox
         self.values["self.tax"] = min(twentythree, twentyfour)
 
